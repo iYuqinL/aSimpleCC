@@ -14,4 +14,4 @@ lex.yy.c: lexical.l
 	flex lexical.l
 
 clean:
-	rm -f syntax.o syntaxtree.o parser
+	rm -f syntax.o syntaxtree.o parser syntax.tab.c syntax.tab.h
