@@ -1,0 +1,2 @@
+Error Type B at line 3: missing ';'
+Error Type B at line 4: missing ';'
