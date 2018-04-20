@@ -1,2 +1,2 @@
-Error Type B at line 5: missing ']'
-Error Type B at line 6: missing ';'
+Error Type B at line 5, column 10: missing ']'
+Error Type B at line 6, column 29: missing ';'

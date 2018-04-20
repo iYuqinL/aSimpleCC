@@ -21,7 +21,4 @@ Program(1)
                 Exp(3)
                   FLOAT :0.000105
             SEMI(3)
-          DefList(4)
-        StmtList(4)
         RC(4)
-    ExtDecList(4)

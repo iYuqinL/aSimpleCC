@@ -21,7 +21,4 @@ Program(1)
                 Exp(7)
                   INT:1
             SEMI(7)
-          DefList(8)
-        StmtList(8)
         RC(8)
-    ExtDecList(8)

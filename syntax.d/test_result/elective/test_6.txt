@@ -1,1 +1,1 @@
-Error Type B at line 10: missing '}'
+Error Type B at line 9, column 14: missing ';'

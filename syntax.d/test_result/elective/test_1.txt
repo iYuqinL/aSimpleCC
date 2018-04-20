@@ -33,7 +33,4 @@ Program(1)
                   Exp(4)
                     INT:0
               SEMI(4)
-            DefList(5)
-        StmtList(5)
         RC(5)
-    ExtDecList(5)
