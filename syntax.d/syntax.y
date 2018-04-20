@@ -13,6 +13,10 @@ void lyyerror( char* msg);
 extern struct syntaxtree_t* T;
 int errorflag=0;
 
+#ifndef D_print_sy
+#define D_print_sy 0
+#endif
+
 %}
 %locations
 /* declared types */
@@ -47,9 +51,6 @@ int errorflag=0;
 %type <syntaxtreenode_t> Stmt Exp Args
 
 /*%type <double_t> */
-%nonassoc error
-%nonassoc LOWER_THAN_ELSE 
-%nonassoc ELSE
 %right ASSIGNOP
 %left LOR
 %left LAND
@@ -61,6 +62,9 @@ int errorflag=0;
 %left LB RB
 %left LP RP
 
+%nonassoc LOWER_THAN_ELSE 
+%nonassoc ELSE
+
 %start Program
 
 /* declared non-terminals */
@@ -69,107 +73,135 @@ int errorflag=0;
 %%
 
 /* high-level definitions */
-Program : ExtDefList           {$$ = allocnewnode("Program",($1->lineno)," ");T->addchild($$,$1);T->setroot(T,$$); /*T->printsyntaxtree(T,T->root,0);*/}
+Program : ExtDefList            {$$ = allocnewnode("Program",($1->lineno)," ");T->addchild($$,$1);T->setroot(T,$$); /*T->printsyntaxtree(T,T->root,0);*/}
         ;
-ExtDefList : ExtDef ExtDefList {$$=allocnewnode("ExtDefList",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
-           | /*empty */ {$$=allocnewnode("ExtDecList",lno," ");}
+ExtDefList : ExtDef ExtDefList  {$$=allocnewnode("ExtDefList",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
+           |           {$$=NULL;
+                        #if D_print_sy 
+                        printf("encounter an empty in ExtDefList\n");
+                        #endif
+                        }
            ;
 ExtDef : Specifier ExtDecList SEMI {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
        | Specifier SEMI            {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
-       | Specifier FunDec CompSt {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-       | Specifier ExtDecList error SEMI    { errorflag=1;lyyerror("missing ';'"); }
-       | Specifier error SEMI               { errorflag=1;lyyerror("missing ';'"); }
+       | Specifier FunDec CompSt   {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+       | Specifier error               {errorflag=1;lyyerror("missing ';'"); }
        ;
-ExtDecList : VarDec {$$=allocnewnode("ExtDecList",($1->lineno)," ");T->addchild($$,$1);}
-           | VarDec COMMA ExtDecList {$$=allocnewnode("ExtDecList",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+ExtDecList : VarDec                     {$$=allocnewnode("ExtDecList",($1->lineno)," ");T->addchild($$,$1);}
+           | VarDec COMMA ExtDecList    {$$=allocnewnode("ExtDecList",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+           | VarDec error ExtDecList    {errorflag=1;lyyerror("missing ','");}
            ;
 
 /* Specifiers */
-Specifier : TYPE {$$=allocnewnode("Specifier",($1->lineno)," ");T->addchild($$,$1);}
+Specifier : TYPE            {$$=allocnewnode("Specifier",($1->lineno)," ");T->addchild($$,$1);}
           | StructSpecifier {$$=allocnewnode("Specifier",($1->lineno)," ");T->addchild($$,$1);}
           ;
 StructSpecifier : STRUCT OptTag LC DefList RC {$$=allocnewnode("StructSpecifier",($1->lineno)," ");T->addchildren($$,5,$1,$2,$3,$4,$5);}
-                | STRUCT Tag {$$=allocnewnode("StructSpecifier",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
-                | STRUCT OptTag LC DefList error RC {errorflag=1;lyyerror("missing ')'");}
+                | STRUCT Tag        {$$=allocnewnode("StructSpecifier",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
                 ;
-OptTag : ID {$$=allocnewnode("OptTag",($1->lineno)," ");T->addchild($$,$1);}
-       | /*empty*/ {$$=allocnewnode("OptTag",lno," ");}
+OptTag : ID                         {$$=allocnewnode("OptTag",($1->lineno)," ");T->addchild($$,$1);}
+       |                          {$$=NULL;
+                                    #if D_print_sy
+                                    printf("encounter an empty in OptTag\n");
+                                    #endif
+                                  }
+/*       |                            {$$=allocnewnode("OptTag",lno," ");printf("encounter an empty in ExtDefList\n");}*/
        ;
-Tag : ID {$$=allocnewnode("Tag",($1->lineno)," ");T->addchild($$,$1);}
+Tag : ID                            {$$=allocnewnode("Tag",($1->lineno)," ");T->addchild($$,$1);}
     ;
 /* Declarators   */
-VarDec : ID {$$=allocnewnode("VarDec",($1->lineno)," ");T->addchild($$,$1);}
-       | VarDec LB INT  RB {$$=allocnewnode("VarDec",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
-       | VarDec LB INT error RB     { errorflag=1;lyyerror("missing ']'"); }
+VarDec : ID                         {$$=allocnewnode("VarDec",($1->lineno)," ");T->addchild($$,$1);}
+       | VarDec LB INT  RB          {$$=allocnewnode("VarDec",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
+       | VarDec LB error RB         {errorflag=1;lyyerror("missing ']'"); }
        ;
-FunDec : ID LP VarList  RP {$$=allocnewnode("FunDec",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
-       | ID LP RP { $$=allocnewnode("FunDec",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3); }
-       | ID LP VarList error RP     {errorflag=1; lyyerror("missing ')'"); }
+FunDec : ID LP VarList  RP          {$$=allocnewnode("FunDec",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
+       | ID LP RP                   {$$=allocnewnode("FunDec",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3); }
        | ID LP error RP             {errorflag=1; lyyerror("missing ')'"); }
        ;
 VarList: ParamDec COMMA VarList {$$=allocnewnode("VarList",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-       | ParamDec {$$=allocnewnode("VarList",($1->lineno)," ");T->addchild($$,$1);}
+       | ParamDec               {$$=allocnewnode("VarList",($1->lineno)," ");T->addchild($$,$1);}
        ;
-ParamDec : Specifier VarDec {$$=allocnewnode("ParamDec",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
+ParamDec : Specifier VarDec             {$$=allocnewnode("ParamDec",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
          ;
 /* statements */
-CompSt :  LC DefList StmtList  RC {$$=allocnewnode("CompSt",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
-       | LC DefList StmtList error RC   {errorflag=1;lyyerror("missing '}'");}
+CompSt :  LC DefList StmtList  RC       {$$=allocnewnode("CompSt",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
        ;
-StmtList : Stmt StmtList {$$=allocnewnode("StmtList",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
-         | /*empty*/ {$$=allocnewnode("StmtList",lno," ");}
+StmtList : Stmt StmtList    {$$=allocnewnode("StmtList",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
+         |                {$$=NULL;
+                            #if D_print_sy
+                            printf("encounter an empty in StmtList\n");
+                            #endif
+                          }
+/*         |                  {$$=allocnewnode("StmtList",lno," ");printf("encounter an empty in ExtDefList\n");}*/
          ;
-Stmt : Exp  SEMI { $$=allocnewnode("Stmt",($1->lineno)," ");T->addchildren($$,2,$1,$2); }
-     | CompSt { $$=allocnewnode("Stmt",($1->lineno)," ");T->addchild($$,$1); }
-     | RETURN Exp  SEMI {$$=allocnewnode("Stmt",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+Stmt : Exp  SEMI                    {$$=allocnewnode("Stmt",($1->lineno)," ");T->addchildren($$,2,$1,$2); }
+     | Exp error SEMI               {errorflag=1; lyyerror("missing ';'");}
+     | CompSt                       {$$=allocnewnode("Stmt",($1->lineno)," ");T->addchild($$,$1); }
+     | RETURN Exp  SEMI             {$$=allocnewnode("Stmt",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
      | IF LP Exp  RP Stmt %prec LOWER_THAN_ELSE  {$$=allocnewnode("Stmt",($1->lineno)," ");T->addchildren($$,5,$1,$2,$3,$4,$5);}
      | IF LP Exp  RP Stmt ELSE Stmt {$$=allocnewnode("Stmt",($1->lineno)," ");T->addchildren($$,7,$1,$2,$3,$4,$5,$6,$7);}
-     | WHILE LP Exp  RP Stmt {$$=allocnewnode("Stmt",($1->lineno)," ");T->addchildren($$,5,$1,$2,$3,$4,$5);}
-     | Exp error SEMI               { errorflag=1;lyyerror("missing ';'"); }
-     | RETURN Exp error SEMI        { errorflag=1;lyyerror("missing ';'"); }
+     | WHILE LP Exp  RP Stmt        {$$=allocnewnode("Stmt",($1->lineno)," ");T->addchildren($$,5,$1,$2,$3,$4,$5);}
+     | error SEMI                   {errorflag=1; lyyerror("missing ';'");}
+     | Exp error                           { errorflag=1;lyyerror("missing ';'"); }
+     | RETURN Exp error                    { errorflag=1;lyyerror("missing ';'"); }
      | IF LP Exp error RP %prec LOWER_THAN_ELSE { errorflag=1;lyyerror("missing ')'"); }
-     | IF LP Exp error RP Stmt ELSE Stmt    { errorflag=1;lyyerror("missing ')'"); }
+     | IF LP Exp error RP Stmt ELSE Stmt        { errorflag=1;lyyerror("missing ')'"); } 
+     | WHILE LP error RP Stmt               {errorflag =1; lyyerror("missing ')'");}
      ;
 /* Local Definitions */
-DefList : Def DefList {$$=allocnewnode("DefList",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
-        | /*empty*/ { $$=allocnewnode("DefList",lno," "); }
+DefList : Def DefList               {$$=allocnewnode("DefList",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
+        |                           {$$=NULL;
+                                    #if D_print_sy
+                                    printf("encounter an empty in DefList\n");
+                                    #endif
+                                    }
+/*        |                    { $$=allocnewnode("DefList",lno," "); printf("encounter an empty in ExtDefList\n");}*/
         ;
-Def : Specifier DecList  SEMI {$$=allocnewnode("Def",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | Specifier DecList error SEMI  {errorflag=1; lyyerror("missing ';'"); }
+Def : Specifier DecList  SEMI       {$$=allocnewnode("Def",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | Specifier DecList error       {errorflag=1; lyyerror("missing ';'"); }
+    | Specifier error SEMI          {errorflag=1; lyyerror("missing ';'");}
     ;
-DecList : Dec {$$=allocnewnode("DecList",($1->lineno)," ");T->addchild($$,$1);}
+DecList : Dec               {$$=allocnewnode("DecList",($1->lineno)," ");T->addchild($$,$1);}
         | Dec COMMA DecList {$$=allocnewnode("DecList",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
         ;
-Dec : VarDec {$$=allocnewnode("Dec",($1->lineno)," ");T->addchild($$,$1);}
-    | VarDec ASSIGNOP Exp {$$=allocnewnode("Dec",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+Dec : VarDec                {$$=allocnewnode("Dec",($1->lineno)," ");T->addchild($$,$1);}
+    | VarDec ASSIGNOP Exp   {$$=allocnewnode("Dec",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
     ;
 /* Expressions*/
-Exp : Exp ASSIGNOP Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | Exp LAND Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | Exp LOR Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | Exp RELOP Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | Exp ADD Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | Exp SUB Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | Exp MUL Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | Exp DIV Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | LP Exp  RP {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | SUB Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
-    | LNOT Exp {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
-    | ID LP Args  RP {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
-    | ID LP  RP {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | Exp LB Exp  RB {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
-    | Exp DOT ID {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-    | ID {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,1,$1);}
-    | INT {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,1,$1);}
-    | FLOAT {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,1,$1);}
-    | LP Exp error RP   { errorflag=1;lyyerror("missing ')'"); }
-    | ID LP Args error RP { errorflag=1;lyyerror("missing ')'"); }
-    | ID LP error RP  { errorflag=1;lyyerror("missing ')'"); }
-    | Exp LB Exp error RB   { errorflag=1; lyyerror("missing ']'"); }
-    | Exp error DIV Exp { errorflag=1;lyyerror("syntax error"); }
+Exp : Exp ASSIGNOP Exp      {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | Exp LAND Exp          {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | Exp LOR Exp           {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | Exp RELOP Exp         {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | Exp ADD Exp           {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | Exp SUB Exp           {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | Exp MUL Exp           {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | Exp DIV Exp           {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | LP Exp  RP            {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | SUB Exp               {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
+    | LNOT Exp              {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
+    | ID LP Args  RP        {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
+    | ID LP  RP             {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | Exp LB Exp  RB        {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,4,$1,$2,$3,$4);}
+    | Exp DOT ID            {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+    | ID                    {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,1,$1);}
+    | INT                   {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,1,$1);}
+    | FLOAT                 {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,1,$1);}
+    | Exp ASSIGNOP error    {errorflag=1;lyyerror("syntax error, maybe ASSIGNOP");}
+    | Exp LAND error         {errorflag=1;lyyerror("syntax error, maybe &&");}
+    | Exp LOR error          {errorflag=1;lyyerror("syntax error, maybe ||");}
+    | Exp RELOP error       {errorflag=1;lyyerror("syntax error, maybe RELOP");}
+    | Exp ADD error         {errorflag=1;lyyerror("syntax error, maybe +");}
+    | Exp SUB error         {errorflag=1;lyyerror("syntax error, maybe -");}
+    | Exp MUL error         {errorflag=1;lyyerror("syntax error, maybe *");}
+    | Exp DIV error         {errorflag=1;lyyerror("syntax error, maybe /");}
+    | LP error RP           {errorflag=1;lyyerror("missing ')'");}
+    | SUB error             {errorflag=1;lyyerror("syntax error, maybe -");}
+    | LNOT error            {errorflag=1;lyyerror("syntax error, maybe !");}
+    | ID LP error RP        {errorflag=1;lyyerror("missing ')'");}
+    | Exp LB error RB       {errorflag=1;lyyerror("missing ']'");}
     ;
-Args : Exp  COMMA Args {$$=allocnewnode("Args",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-     | Exp {$$=allocnewnode("Args",($1->lineno)," ");T->addchild($$,$1);}
+Args : Exp COMMA Args       {$$=allocnewnode("Args",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+     | Exp                  {$$=allocnewnode("Args",($1->lineno)," ");T->addchild($$,$1);}
      ;
 
 
@@ -184,6 +216,6 @@ void yyerror(char* msg){
 
 void lyyerror(char* msg)
 {
-    printf("Error Type B at line %d: %s\n",yylloc.first_line, msg);
+    printf("Error Type B at line %d, column %d: %s\n",yylloc.first_line,yylloc.first_column, msg);
 }
 
