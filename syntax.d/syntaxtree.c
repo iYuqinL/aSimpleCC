@@ -138,7 +138,7 @@ struct node_t* allocnewnode(char* nameval, int lineno, char* text)
     }
     else if(!strcmp(ret->name,"INT")) 
     {
-        ret->I_type=atoi(text);
+        ret->I_type=str2int(text);
         ret->ID_type=NULL;
     }
     else if(!strcmp(ret->name,"FLOAT"))
@@ -311,13 +311,36 @@ int str2int(const char* str)
     int len=strlen(str);
 
     int ret = atoi(str);
-    if(ret==0 && len>1) //非十进制数
+//    printf("the int yytext len is: %d\n", len);
+    if((ret==0 && len>1)||(str[0]=='0' && len>1)) //非十进制数
     {
-        if(str[0]==0 && (str[1]!='x'||str[1]!='X')) //八进制
+//        printf("I not a decimal num\n");
+        ret=0;
+        if(str[0]=='0' && (str[1]!='x' && str[1]!='X')) //八进制
         {
-            
+//            printf("I am a octer num\n");
+            for(int i = 0; i<len; ++i)
+            {
+                if(str[i]>='0'&&str[i]<='8')
+                    ret=ret*8+(str[i]-'0');
+            }
+        }
+        else        //十六进制
+        {
+//            printf("I am a hexical num\n");
+            for(int i =2; i<len; ++i)
+            {
+                if(str[i]!='H'||str[i]!='H')
+                    if(str[i]>='0'&&str[i]<='9')
+                        ret=ret*16+ (str[i]-'0');
+                    else if(str[i]>='A'&& str[i]<='F')
+                        ret=ret*16+ (str[i]-55);
+                    else if(str[i]>='a' && str[i]<='f')
+                        ret=ret*16 + (str[i]-87);
+            }
         }
     }
+    return ret;
 }
 float str2float(const char* str)
 {
