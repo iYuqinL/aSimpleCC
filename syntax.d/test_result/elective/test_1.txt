@@ -19,7 +19,7 @@ Program(1)
                   ID: i
                 ASSIGNOP(3)
                 Exp(3)
-                  INT:123
+                  INT:83
             SEMI(3)
           DefList(4)
             Def(4)
@@ -31,6 +31,6 @@ Program(1)
                     ID: j
                   ASSIGNOP(4)
                   Exp(4)
-                    INT:0
+                    INT:63
               SEMI(4)
         RC(5)
