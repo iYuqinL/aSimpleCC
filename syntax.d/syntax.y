@@ -82,10 +82,10 @@ ExtDefList : ExtDef ExtDefList  {$$=allocnewnode("ExtDefList",($1->lineno)," ");
                         #endif
                         }
            ;
-ExtDef : Specifier ExtDecList SEMI {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-       | Specifier SEMI            {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
-       | Specifier FunDec CompSt   {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
-       | Specifier error               {errorflag=1;lyyerror("missing ';'"); }
+ExtDef : Specifier ExtDecList SEMI      {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+       | Specifier SEMI                 {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
+       | Specifier FunDec CompSt        {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
+       | Specifier error                {errorflag=1;lyyerror("missing ';'"); }
        ;
 ExtDecList : VarDec                     {$$=allocnewnode("ExtDecList",($1->lineno)," ");T->addchild($$,$1);}
            | VarDec COMMA ExtDecList    {$$=allocnewnode("ExtDecList",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
@@ -144,8 +144,8 @@ Stmt : Exp  SEMI                    {$$=allocnewnode("Stmt",($1->lineno)," ");T-
      | error SEMI                   {errorflag=1; lyyerror("missing ';'");}
      | Exp error                           { errorflag=1;lyyerror("missing ';'"); }
      | RETURN Exp error                    { errorflag=1;lyyerror("missing ';'"); }
-     | IF LP Exp error RP %prec LOWER_THAN_ELSE { errorflag=1;lyyerror("missing ')'"); }
-     | IF LP Exp error RP Stmt ELSE Stmt        { errorflag=1;lyyerror("missing ')'"); } 
+     | IF LP error RP Stmt %prec LOWER_THAN_ELSE { errorflag=1;lyyerror("missing ')'"); }
+     | IF LP error RP Stmt ELSE Stmt        { errorflag=1;lyyerror("missing ')'"); } 
      | WHILE LP error RP Stmt               {errorflag =1; lyyerror("missing ')'");}
      ;
 /* Local Definitions */
@@ -187,8 +187,8 @@ Exp : Exp ASSIGNOP Exp      {$$=allocnewnode("Exp",($1->lineno)," ");T->addchild
     | INT                   {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,1,$1);}
     | FLOAT                 {$$=allocnewnode("Exp",($1->lineno)," ");T->addchildren($$,1,$1);}
     | Exp ASSIGNOP error    {errorflag=1;lyyerror("syntax error, maybe ASSIGNOP");}
-    | Exp LAND error         {errorflag=1;lyyerror("syntax error, maybe &&");}
-    | Exp LOR error          {errorflag=1;lyyerror("syntax error, maybe ||");}
+    | Exp LAND error        {errorflag=1;lyyerror("syntax error, maybe &&");}
+    | Exp LOR error         {errorflag=1;lyyerror("syntax error, maybe ||");}
     | Exp RELOP error       {errorflag=1;lyyerror("syntax error, maybe RELOP");}
     | Exp ADD error         {errorflag=1;lyyerror("syntax error, maybe +");}
     | Exp SUB error         {errorflag=1;lyyerror("syntax error, maybe -");}
