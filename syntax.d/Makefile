@@ -1,5 +1,5 @@
 parser: syntax.o syntaxtree.o main.c
-	gcc syntax.o syntaxtree.o main.c -o parser
+	gcc syntax.o syntaxtree.o main.c -lfl -o parser
 
 syntax.o: syntax.tab.c syntax.tab.h lex.yy.c
 	gcc -c syntax.tab.c -o syntax.o
