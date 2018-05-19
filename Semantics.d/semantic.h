@@ -32,30 +32,30 @@ typedef enum TableType_t
 	SUBBASIC_TAB=105,
 }TabTyp_t;
 
-SbTab_t *Program(Sytree_t *sytree);
-int ExtDefList(SbTab_t **tab, TabTyp_t tabtyp, node_t *node);
-int ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node);
-int ExtDecList(SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type);
+SbTab_t *Program(SbTab_t *PTab, Sytree_t *sytree);
+int ExtDefList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node);
+int ExtDef(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node);
+int ExtDecList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type);
 
-SbTab_t *Specifier(SbTab_t **tab,TabTyp_t tabtyp,node_t *node);
-SbTab_t *StructSpecifier(SbTab_t **tab,TabTyp_t tabtyp, node_t *node);
-SbTab_t *VarDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type);
+SbTab_t *Specifier(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node);
+SbTab_t *StructSpecifier(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp, node_t *node);
+SbTab_t *VarDec(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type);
 
-FuncTab_t *FunDec(node_t *node, SbTab_t *retT);
-SbTab_t *VarList(SbTab_t **tab, TabTyp_t tabtyp, node_t *node);
-SbTab_t *ParamDec(SbTab_t **tab, TabTyp_t tabtyp,node_t *node);
+FuncTab_t *FunDec(SbTab_t *PTab, node_t *node, SbTab_t *retT);
+SbTab_t *VarList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node);
+SbTab_t *ParamDec(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node);
 
-SbTab_t *CompSt(SbTab_t **tab, TabTyp_t tabtyp,node_t *node,SbTab_t *retT);
-int StmtList(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT);
-int Stmt(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT);
+SbTab_t *CompSt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node,SbTab_t *retT);
+int StmtList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT);
+int Stmt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT);
 
-int DefList(SbTab_t **tab,TabTyp_t tabtyp, node_t *node);
-SbTab_t *Def(SbTab_t **tab,TabTyp_t tabtyp,node_t *node);
-SbTab_t *DecList(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type);
-SbTab_t *Dec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type);
+SbTab_t *DefList(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp, node_t *node);
+SbTab_t *Def(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node);
+SbTab_t *DecList(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type);
+SbTab_t *Dec(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type);
 
-SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node);
-int Args(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *paralist);
+SbTab_t *Exp(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node);
+int Args(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *paralist);
 
 //辅助函数
 int typeCmp(SbTab_t *a, SbTab_t *b);
@@ -64,6 +64,6 @@ int StTypeCmp(SbTab_t **a,SbTab_t **b);
 
 SbTab_t *LookUpSymbol(SbTab_t **tab,char *name, SbTab_t *result);
 
-
-
+int printParaTypList(SbTab_t *paralist);
+int printArgs(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp, node_t *node);
 #endif

@@ -34,7 +34,7 @@ int main(int argc, char** argv)
     yyparse();
     if(errorflag==0)
         T->printsyntaxtree(T,T->root,0);
-    Program(T);
+    Program(NULL,T);
     T->destroy(T);
     return 0;
 }

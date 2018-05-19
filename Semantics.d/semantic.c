@@ -23,24 +23,24 @@ int haschildren(node_t *node)
 	return (node->child->size(node->child));
 }
 
-SbTab_t *Program(Sytree_t *sytree)
+SbTab_t *Program(SbTab_t *PTab,Sytree_t *sytree)
 {
 	if(sytree ==NULL)
 		return 0;
 	if(haschildren(sytree->root)==-1)
 		return 0;
 	SbTab_t *gTab=NULL; //global table
-	ExtDefList(&gTab,BASIC_TAB,sytree->root->child->ptr[0]);
+	ExtDefList(NULL,&gTab,BASIC_TAB,sytree->root->child->ptr[0]);
 	//do something?
 	return gTab;
 }
 
-int ExtDefList(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
+int ExtDefList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 {
 	if(haschildren(node)==-1)
 		return 0;
-	ExtDef(tab,tabtyp,node->child->ptr[0]);
-	ExtDefList(tab,tabtyp,node->child->ptr[1]);
+	ExtDef(PTab,tab,tabtyp,node->child->ptr[0]);
+	ExtDefList(PTab,tab,tabtyp,node->child->ptr[1]);
 	return 0;
 }
 
@@ -58,17 +58,17 @@ int setFunParent(SbTab_t *parent,FuncTab_t **fun)
 	}
 }
 
-int ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
+int ExtDef(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 {
 	int children=0;
 	if(children=haschildren(node)==-1)
 		return -1;
-	SbTab_t *type=Specifier(tab,tabtyp,node->child->ptr[0]);
+	SbTab_t *type=Specifier(PTab,tab,tabtyp,node->child->ptr[0]);
 	node_t *child=node->child->ptr[1];
 	if(strcmp(child->name,"ExtDecList")==0)
 	{
 		//ExtDef: Specifier ExtDecList SEMI
-		ExtDecList(tab,tabtyp,child,type);
+		ExtDecList(PTab,tab,tabtyp,child,type);
 	}
 	else if(strcmp(child->name,"SEMI")==0)
 	{
@@ -78,28 +78,21 @@ int ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 	else //函数定义
 	{
 		//ExtDef: Specifier FunDec Compst
-		FuncTab_t *fun=FunDec(child,type);
-		SbTab_t **fundef = (SbTab_t**)malloc(sizeof(SbTab_t*));
-		*fundef=AllocSbTab();
-		CompSt(fundef,FUNDEF_TAB, node->child->ptr[2],fun->retType);
-		fun->FuncDef=(*fundef);
-		if(fun->FuncDef!=NULL)
-		{
-			fun->hasDef=1;
-		}
-		else
-		{
-			fun->hasDef=0;
-		}
+		FuncTab_t *fun=FunDec(PTab,child,type);
 		SbTab_t *sb;
 		sb = FindSymbol(tab,fun->name,sb);
 		if(sb==NULL)
 		{
 			sb=AllocSymbol(fun->name,FUNCDEF);
 			sb->SubTab=fun;
+			InsertSymbol(tab,sb);
+			SbTab_t **fundef = (SbTab_t**)malloc(sizeof(SbTab_t*));
+			*fundef=AllocSbTab();
+			*fundef = CompSt(sb,fundef,FUNDEF_TAB, node->child->ptr[2],fun->retType);
+			fun->FuncDef=(*fundef);
+			fun->hasDef = 1;
 			fun->parent=sb;
 			setFunParent(sb,&fun);
-			InsertSymbol(tab,sb);
 		}
 		else if(sb->SbType==FUNCDEF)
 		{
@@ -111,20 +104,21 @@ int ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 			printf( "Error type 2 at line %d: undefined function \"%s\".\n", child->lineno,fun->name);
 			return FUNC_NDEF;
 		}
+
 	}
 	return 0;
 
 }
 
 //
-int ExtDecList(SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type)
+int ExtDecList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 {
 	int children=haschildren(node);
 	if(children==-1)
 		return -1;
 
 	//ExtDecList:VarDec 
-	SbTab_t *vardec=VarDec(tab, tabtyp,node->child->ptr[0],type);
+	SbTab_t *vardec=VarDec(PTab,tab, tabtyp,node->child->ptr[0],type);
 	//不对符号表处理，交到VarDec去处理
 /*	SbTab_t *tmp=NULL;
 	tmp =FindSymbol(tab,vardec->name,tmp);
@@ -140,13 +134,13 @@ int ExtDecList(SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 	if(children>1)
 	{
 		//ExtDecList:VarDec COMMA ExtDecList
-		ExtDecList(tab,tabtyp,node->child->ptr[2],type);
+		ExtDecList(PTab,tab,tabtyp,node->child->ptr[2],type);
 	}
 	return 0;
 }
 
 //返回一个符号，并且该符号已经插入到tab里面
-SbTab_t *Specifier(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
+SbTab_t *Specifier(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 {
 	int children=haschildren(node);
 	if(children==-1)
@@ -168,13 +162,13 @@ SbTab_t *Specifier(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 	}
 	else
 	{
-		type=StructSpecifier(tab,tabtyp,child);
+		type=StructSpecifier(PTab,tab,tabtyp,child);
 	}
 	return type;
 }
 
 //返回一个符号，并且在有名字的结构体的情况下，该符号已经插入到tab里面
-SbTab_t *StructSpecifier(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
+SbTab_t *StructSpecifier(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 {
 	int children=haschildren(node);
 	if(children==-1)
@@ -187,21 +181,22 @@ SbTab_t *StructSpecifier(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 		if(haschildren(child)!=-1)//有名字的结构体
 		{
 			char *StName;
-//			strcpy(StName,child->child->ptr[0]->ID_type);
+			//strcpy(StName,child->child->ptr[0]->ID_type);
 			StName = child->child->ptr[0]->ID_type;
-			SbTab_t *tmp;
+			SbTab_t *tmp=NULL;
 			tmp = FindSymbol(tab,StName,tmp);
 			if(tmp==NULL)
 			{
 				SbTab_t *StSy=AllocSymbol(StName,STRUCT_T); //往tab里插入
+				InsertSymbol(tab,StSy);
 				SbTab_t **StTab = (SbTab_t **)malloc(sizeof(SbTab_t *));
 				*StTab=AllocSbTab(); //结构体域符号表
-				DefList(StTab,STRUCTFILED,node->child->ptr[3]);
-				StSy->SubTab=StTab;
+				DefList(StSy,StTab,STRUCTFILED,node->child->ptr[3]);
+				StSy->SubTab=*StTab;
 				//父表指针
 				if(StTab!=NULL)
 					(*StTab)->parent=StSy;
-				InsertSymbol(tab,StSy);
+				
 				ret=StSy;
 			}
 			else	//名字重复
@@ -219,7 +214,7 @@ SbTab_t *StructSpecifier(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 			SbTab_t *StSy=AllocSymbol("StName",STRUCT_T); //往tab里插入
 			SbTab_t **StTab = (SbTab_t**)malloc(sizeof(SbTab_t *));
 			*StTab=AllocSbTab(); //结构体域符号表
-			DefList(StTab,STRUCTFILED,node->child->ptr[3]);
+			DefList(StSy,StTab,STRUCTFILED,node->child->ptr[3]);
 			StSy->SubTab=StTab;
 			if(StTab!=NULL)
 				(*StTab)->parent=StSy;
@@ -232,22 +227,30 @@ SbTab_t *StructSpecifier(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 		char *StName;
 //		strcpy(StName,child->child->ptr[0]->ID_type);
 		StName=child->child->ptr[0]->ID_type;		
-		SbTab_t *tmp;
-		tmp = FindSymbol(tab,StName,tmp);	
+		SbTab_t *tmp=NULL;
+//		printf("hh\n");
+		tmp = FindSymbol(tab,StName,tmp);
+//		printf("hhh\n");
 		if(tmp==NULL)	//结构体未定义
 		{
-			printf("Error type 17 at line %d: Undefined structure \"%s\".\n",child->lineno,StName);
+			if( PTab!=NULL &&PTab->SbType == FUNCDEF)  //函数定义刚进来
+			{
+				tmp = LookUpSymbol(&PTab,StName,tmp);
+				if(tmp == NULL)
+				{
+					printf("Error type 17 at line %d: Undefined structure \"%s\".\n",child->lineno,StName);	
+					return NULL;
+				}
+			}
 		}
-		else
-		{
-			ret=tmp;
-		}	
+
+		ret=tmp;
 	}
 	return ret;
 }
 
 //数组类型处理
-arr_t *ArrayDec(SbTab_t *sy,arr_t *pre,node_t *node,SbType_t t)
+arr_t *ArrayDec(SbTab_t **sy,arr_t *pre,node_t *node,SbType_t t)
 {
 	int children=haschildren(node);
 	if(children==-1)
@@ -255,8 +258,8 @@ arr_t *ArrayDec(SbTab_t *sy,arr_t *pre,node_t *node,SbType_t t)
 	if(children==1) //递归基
 	{
 		// VarDec ： ID
-		sy=AllocSymbol(node->child->ptr[0]->ID_type,ARRAY);
-		sy->SubTab=pre;
+		(*sy)=AllocSymbol(node->child->ptr[0]->ID_type,ARRAY);
+		(*sy)->SubTab=pre;
 	}
 	else
 	{
@@ -270,7 +273,7 @@ arr_t *ArrayDec(SbTab_t *sy,arr_t *pre,node_t *node,SbType_t t)
 }
 
 //返回一个符号
-SbTab_t *VarDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
+SbTab_t *VarDec(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 {
 	int children=haschildren(node);
 	if(children==-1)
@@ -283,9 +286,27 @@ SbTab_t *VarDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 		tmp = FindSymbol(tab,node->child->ptr[0]->ID_type,tmp);
 		if(tmp != NULL)
 		{
-			printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+			switch(tabtyp)
+			{
+				case STRUCTFILED: printf("Error type 15 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
+				case BASIC_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
+				default:break;
+			}
+			
 			return NULL;
 		}
+		if( NULL != PTab && PTab->SbType==FUNDEF_TAB)
+		{
+			FuncTab_t *funTab = (FuncTab_t *)PTab->SubTab;
+			tmp = FindSymbol(&(funTab->paraList),node->child->ptr[0]->ID_type,tmp);
+			if(tmp != NULL)
+			{
+				printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+				return NULL;
+			}
+		}
+		if(type==NULL)
+			return NULL;
 		ret=AllocSymbol(node->child->ptr[0]->ID_type,type->SbType);
 		if(type->SbType==STRUCT_T)
 		{
@@ -294,21 +315,43 @@ SbTab_t *VarDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 		}
 		//插入符号表
 		InsertSymbol(tab,ret);
+		if(*tab !=NULL && (*tab)->parent == NULL)
+			(*tab)->parent = PTab;
 	}
 	else //数组类型
 	{
-		ArrayDec(ret,NULL,node,type->SbType);
+		ArrayDec(&ret,NULL,node,type->SbType);
 		if(type->SbType==STRUCT_T)
 		{
 			ret->SubTab=type->SubTab;
 			ret->parent=type->parent;
 		}
+		SbTab_t *tmp = NULL;
+		tmp = FindSymbol(tab,ret->name,tmp);
+		if(tmp != NULL)
+		{
+			printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+			return NULL;
+		}
+		if( NULL != PTab && PTab->SbType==FUNDEF_TAB)
+		{
+			FuncTab_t *funTab = (FuncTab_t *)PTab->SubTab;
+			tmp = FindSymbol(&(funTab->paraList),ret->name,tmp);
+			if(tmp != NULL)
+			{
+				printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+				return NULL;
+			}
+		}
+		InsertSymbol(tab,ret);
+		if(*tab !=NULL && (*tab)->parent == NULL)
+			(*tab)->parent = PTab;		
 	}
 	return ret;
 }
 
 //返回函数的声明体，未包含定义部分
-FuncTab_t *FunDec(node_t *node, SbTab_t *retT)
+FuncTab_t *FunDec(SbTab_t*PTab, node_t *node, SbTab_t *retT)
 {
 	int children=haschildren(node);
 	if(children==-1)
@@ -323,7 +366,7 @@ FuncTab_t *FunDec(node_t *node, SbTab_t *retT)
 	{ //FunDec : ID LP VarList RP
 		SbTab_t **ParaListTab=(SbTab_t **)malloc(sizeof(SbTab_t *));
 		*ParaListTab=AllocSbTab();
-		ret->paraList=VarList(ParaListTab,FUNPARA_TAB, node->child->ptr[2]);
+		ret->paraList=VarList(PTab,ParaListTab,FUNPARA_TAB, node->child->ptr[2]);
 		//父表指针已经在上层处理
 //		if(ret->paraList!=NULL)
 //			ret->paraList->parent=ret;
@@ -336,13 +379,13 @@ FuncTab_t *FunDec(node_t *node, SbTab_t *retT)
 }
 
 //返回一个参数列表
-SbTab_t *VarList(SbTab_t **tab, TabTyp_t tabtyp, node_t *node)
+SbTab_t *VarList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node)
 {
 	int children=haschildren(node);
 	if(children==-1)
 		return NULL;
 	SbTab_t *Para, *tmp=NULL;
-	Para=ParamDec(tab,tabtyp,node->child->ptr[0]);
+	Para=ParamDec(PTab,tab,tabtyp,node->child->ptr[0]);
 	// 符号表处理已经交到VarDec
 /*	tmp = FindSymbol(tab,Para->name,tmp);
 	if(tmp==NULL)
@@ -355,46 +398,51 @@ SbTab_t *VarList(SbTab_t **tab, TabTyp_t tabtyp, node_t *node)
 	}*/
 	if(children>1)
 	{
-		VarList(tab,tabtyp,node->child->ptr[2]);
+		VarList(PTab,tab,tabtyp,node->child->ptr[2]);
 	}
 	return *tab;
 }
 
 //返回一个符号
-SbTab_t *ParamDec(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
+SbTab_t *ParamDec(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 {
 	int children=haschildren(node);
 	if(children==-1)
 		return NULL;
-	SbTab_t *type=Specifier(tab,tabtyp,node->child->ptr[0]);
-	SbTab_t *ret=VarDec(tab,tabtyp, node->child->ptr[1],type);
+	SbTab_t *type=Specifier(PTab,tab,tabtyp,node->child->ptr[0]);
+	SbTab_t *ret=VarDec(PTab,tab,tabtyp, node->child->ptr[1],type);
 	return ret;
 }
 
 //返回一个（子）符号表,也即传进来的tab
-SbTab_t *CompSt(SbTab_t **tab, TabTyp_t tabtyp,node_t *node,SbTab_t *retT)
+SbTab_t *CompSt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node,SbTab_t *retT)
 {
 	int children=haschildren(node);
 	if(children==-1)
+	{
+//		*tab = NULL;
 		return NULL;
-	DefList(tab,tabtyp,node->child->ptr[1]);
-	StmtList(tab,tabtyp,node->child->ptr[2],retT);
+	}
+	node_t** childs = node->child->ptr;
+
+	DefList(PTab,tab,tabtyp,childs[1]);
+	StmtList(PTab,tab,tabtyp,childs[2],retT);
 	return *tab;
 }
 
 //
-int StmtList(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
+int StmtList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 {
 	int children=haschildren(node);
 	if(children==-1)
 		return 0;
-	Stmt(tab,tabtyp,node->child->ptr[0],retT);
-	StmtList(tab,tabtyp,node->child->ptr[1],retT);
+	Stmt(PTab,tab,tabtyp,node->child->ptr[0],retT);
+	StmtList(PTab,tab,tabtyp,node->child->ptr[1],retT);
 	return 0;
 }
 
 //
-int Stmt(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
+int Stmt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 {
 	int children=haschildren(node);
 	if(children==-1)
@@ -402,7 +450,7 @@ int Stmt(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 	node_t **childs=node->child->ptr;
 	if(strcmp(childs[0]->name,"Exp")==0)
 	{//Stmt: Exp SEMI
-		Exp(tab,tabtyp,childs[0]);
+		Exp(PTab,tab,tabtyp,childs[0]);
 	}
 	else if(strcmp(childs[0]->name,"CompSt")==0)
 	{//Stmt: CompSt
@@ -420,14 +468,14 @@ int Stmt(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 		SbTab_t *Sy=AllocSymbol(SubTabName,SUBTAB);
 		SbTab_t **SubTab = (SbTab_t **)malloc(sizeof(SbTab_t *));
 		*SubTab=AllocSbTab();
-		Sy->SubTab = CompSt(SubTab,SUBBASIC_TAB,childs[0],retT);
+		Sy->SubTab = CompSt(Sy,SubTab,SUBBASIC_TAB,childs[0],retT);
 		if(SubTab!=NULL)
 			(*SubTab)->parent=Sy;
 		SubTabCNT=SubTabCNT+1;
 	}
 	else if(strcmp(childs[0]->name,"RETURN")==0)
 	{//Stmt: RETURN Exp SEMI
-		SbTab_t *ret=Exp(tab,tabtyp,childs[1]);
+		SbTab_t *ret=Exp(PTab,tab,tabtyp,childs[1]);
 		if(retT==NULL && ret==NULL)
 			return 0;
 		else if(retT==NULL || ret==NULL || typeCmp(retT,ret)!=0)
@@ -437,21 +485,21 @@ int Stmt(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 	}
 	else if(strcmp(childs[0]->name,"WHILE")==0)
 	{//Stmt: WHILE LP Exp RP Stmt
-		SbTab_t *whileExp = Exp(tab,tabtyp,childs[2]);
-		Stmt(tab,tabtyp,childs[4],retT);
+		SbTab_t *whileExp = Exp(PTab,tab,tabtyp,childs[2]);
+		Stmt(PTab,tab,tabtyp,childs[4],retT);
 	}
 	else
 	{//Stmt: IF LP Exp RP Stmt (ELSE Stmt)
-		SbTab_t *ifExp =Exp(tab,tabtyp,childs[2]);
-		Stmt(tab,tabtyp,childs[4],retT);
+		SbTab_t *ifExp =Exp(PTab,tab,tabtyp,childs[2]);
+		Stmt(PTab,tab,tabtyp,childs[4],retT);
 		if(children>5)
 		{
-			Stmt(tab,tabtyp,childs[6],retT);
+			Stmt(PTab,tab,tabtyp,childs[6],retT);
 		}
 	}
 }
 
-int DefList(SbTab_t **tab,TabTyp_t tabtyp, node_t *node)
+SbTab_t* DefList(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp, node_t *node)
 {
 	int children=haschildren(node);
 	if(children==-1)
@@ -460,13 +508,13 @@ int DefList(SbTab_t **tab,TabTyp_t tabtyp, node_t *node)
 	node_t **childs = node->child->ptr;
 //	if(childs==NULL)
 //		return 0;
-	Def(tab,tabtyp,childs[0]);
-	DefList(tab,tabtyp,childs[1]);
-	
+	Def(PTab,tab,tabtyp,childs[0]);
+	DefList(PTab,tab,tabtyp,childs[1]);
+	return *tab;
 }
 
 //把tab返回
-SbTab_t *Def(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
+SbTab_t *Def(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 {
 	int children=haschildren(node);
 	if(children==-1)
@@ -475,35 +523,35 @@ SbTab_t *Def(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 	node_t **childs=node->child->ptr;
 //	if(childs==NULL)
 //		return NULL;
-	SbTab_t *type=Specifier(tab,tabtyp,childs[0]);
-	DecList(tab,tabtyp,childs[1],type);
+	SbTab_t *type=Specifier(PTab,tab,tabtyp,childs[0]);
+	DecList(PTab,tab,tabtyp,childs[1],type);
 	return *tab;
 }
 
 //把tab返回
-SbTab_t *DecList(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
+SbTab_t *DecList(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 {
 	int children =haschildren(node);
 	if(children==-1)
 		return NULL;
 	//DecList: Dec (COMMA DecList)
 	node_t **childs=node->child->ptr;
-	Dec(tab,tabtyp,childs[0],type);
+	Dec(PTab,tab,tabtyp,childs[0],type);
 	if(children>2)
 	{
-		DecList(tab,tabtyp,childs[2],type);
+		DecList(PTab,tab,tabtyp,childs[2],type);
 	}
 	return *tab;
 }
 
-SbTab_t *Dec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
+SbTab_t *Dec(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 {
 	int children = haschildren(node);
 	if(children==-1)
 		return NULL;
 	node_t **childs=node->child->ptr;
 	//Dec: VarDec (ASSIGNOP Exp)
-	SbTab_t *vardec=VarDec(tab,tabtyp,childs[0],type);
+	SbTab_t *vardec=VarDec(PTab,tab,tabtyp,childs[0],type);
 	if(vardec != NULL)
 	{
 		// SbTab_t *tmp=NULL;
@@ -516,7 +564,7 @@ SbTab_t *Dec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 					printf( "Error type 15 at line %d: variable can not be initialed in struct field \"%s\".\n", childs[0]->lineno, vardec->name);
 				return NULL;
 			}
-			SbTab_t *rval=Exp(tab,tabtyp,childs[2]);
+			SbTab_t *rval=Exp(PTab,tab,tabtyp,childs[2]);
 			if(vardec != NULL && rval != NULL && typeCmp(vardec,rval)!=0)
 			{
 				printf( "Error type 5 at line %d: Type mismatched for assignment.\n", childs[0]->lineno);
@@ -533,7 +581,7 @@ SbTab_t *Dec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 
 }
 
-SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
+SbTab_t *Exp(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 {
 	int children = haschildren(node);
 	if(children==-1)
@@ -559,21 +607,21 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				node_t **grandchilds=childs[0]->child->ptr;
 				if(strcmp(grandchilds[0]->name,"ID")==0)
 				{//普通变量
-					lvar= Exp(tab,tabtyp,childs[0]);
+					lvar= Exp(PTab,tab,tabtyp,childs[0]);
 				}
 				else if(strcmp(grandchilds[0]->name,"Exp")==0 && grandchildren>=2 && strcmp(grandchilds[1]->name,"LB")==0)
 				{//数组访问表达式
-					lvar = Exp(tab,tabtyp,childs[0]);
+					lvar = Exp(PTab,tab,tabtyp,childs[0]);
 				}
 				else if( strcmp(grandchilds[0]->name,"Exp")==0 && grandchildren>=2 && strcmp(grandchilds[1]->name,"DOT")==0 ){
 					//结构体访问表达式
-					lvar = Exp(tab,tabtyp,childs[0]);
+					lvar = Exp(PTab,tab,tabtyp,childs[0]);
 				}
 				else{
 					printf( "Error type 6 at line %d: The left-hand side of an assignment must be a variable.\n", childs[0]->lineno );
 				}
 				//判断左右是否类型匹配
-				rval = Exp(tab,tabtyp,childs[2]);
+				rval = Exp(PTab,tab,tabtyp,childs[2]);
 				if(lvar == NULL && rval == NULL)
 					return NULL;
 				if(typeCmp(lvar,rval)==0)
@@ -592,8 +640,8 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				// | Exp STAR Exp
 				// | Exp DIV Exp
 			{
-				lvar = Exp( tab,tabtyp,childs[0]);
-				rval = Exp( tab, tabtyp,childs[2]);
+				lvar = Exp( PTab,tab,tabtyp,childs[0]);
+				rval = Exp(PTab, tab, tabtyp,childs[2]);
 				if( lvar==NULL || rval==NULL )
 					return NULL;
 				//if(lvar->SbType==rval->SbType && (lvar->SbType == FLOAT_T || lvar->SbType == INT_T))
@@ -606,7 +654,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 			}
 			else if( strcmp(childs[1]->name,"DOT")==0 )
 			{// Exp: Exp DOT ID
-				lvar = Exp( tab,tabtyp, childs[0] );
+				lvar = Exp(PTab, tab,tabtyp, childs[0] );
 				if(lvar==NULL )
 					return NULL;
 				if( lvar->SbType !=STRUCT_T )
@@ -614,21 +662,22 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 					printf( "Error type 13 at line %d: Illegal use of \".\".\n", childs[0]->lineno );
 					return NULL;
 				}
-				SbTab_t *strucField = (SbTab_t*) lvar->SubTab;
-				SbTab_t *tmp;
-				tmp = FindSymbol(&strucField,childs[2]->ID_type,tmp);
+				SbTab_t **strucField = (SbTab_t**)malloc(sizeof(SbTab_t *));
+				*strucField = (SbTab_t*) lvar->SubTab;
+				SbTab_t *tmp=NULL;
+				tmp = FindSymbol(strucField,childs[2]->ID_type,tmp);
 				if(tmp==NULL)
 				{
-					printf( "Error type 14 at line %d: Non-existent field \"%s\".\n", childs[0]->lineno, lvar->name );
+					printf( "Error type 14 at line %d: Non-existent field \"%s\".\n", childs[0]->lineno,childs[2]->ID_type );
 					return NULL;
 				}
-				return strucField; //
+				return lvar; //
 			}
 		}
 		else if(children == 4)
 		{// Exp: Exp LB Exp RB
 			SbTab_t *arrSy, *rval;
-			arrSy = Exp(tab,tabtyp,childs[0]);
+			arrSy = Exp(PTab,tab,tabtyp,childs[0]);
 			if(arrSy == NULL)
 				return NULL;
 			if(arrSy->SbType != ARRAY)
@@ -636,12 +685,12 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				printf( "Error type 10 at line %d: \"%s\" is not an array.\n", childs[0]->lineno, arrSy->name );
 				return NULL;
 			}
-			rval = Exp(tab,tabtyp,childs[2]);
+			rval = Exp(PTab,tab,tabtyp,childs[2]);
 			if(rval == NULL)
 				return NULL;
 			if(rval->SbType != INT_T)
 			{
-				printf( "Error type 12 at line %d: \"%s\" is not an array.\n", childs[2]->lineno , rval->name );
+				printf( "Error type 12 at line %d: \"%s\" is not an integer.\n", childs[2]->lineno , rval->name );
 				return NULL;
 			}
 			return arrSy;
@@ -655,13 +704,34 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 		{//Exp : ID
 			if(Sy==NULL)
 			{
-				printf( "Error type 1 at line %d: Undefined variable\"%s\".\n",childs[0]->lineno,childs[0]->ID_type);	
-				return NULL;
+				if(PTab->SbType == FUNCDEF)
+				{
+					FuncTab_t *fundef = (FuncTab_t *)(PTab->SubTab);
+					SbTab_t ** ParaTab = &(fundef->paraList);
+					Sy = FindSymbol(ParaTab,childs[0]->ID_type,Sy);
+					if(Sy == NULL)
+					{
+						printf( "Error type 1 at line %d: Undefined variable\"%s\".\n",childs[0]->lineno,childs[0]->ID_type);	
+						return NULL;
+					}
+				}
 			}
 			return Sy;
 		}
 		else 
 		{// Exp: ID LP (Args) RP
+			if( Sy == NULL)
+			{
+				if(PTab->SbType == FUNCDEF)  //函数定义刚进来
+				{
+					Sy = LookUpSymbol(&PTab,childs[0]->ID_type,Sy);
+					if(Sy == NULL)
+					{
+						printf( "Error type 2 at line %d: Undefined function\"%s\".\n",childs[0]->lineno,childs[0]->ID_type);	
+						return NULL;
+					}
+				}
+			}
 			if(Sy!=NULL)
 			{
 				if(Sy->SbType != FUNCDEF)
@@ -681,18 +751,18 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 					if(paralist!=NULL)
 					{
 						printf( "Error type 9 at line %d: Function \"%s(", childs[2]->lineno, func->name );
-						//printTypeList( paraList );
+						printParaTypList( paralist );
 						printf( ")\" is not applicable for arguments \"()\".\n" );
 					}
 				}
 				else 
 				{
-					if(Args(tab,tabtyp,childs[2],paralist)!=0)
+					if(Args(PTab,tab,tabtyp,childs[2],paralist)!=0)
 					{
 						printf( "Error type 9 at line %d: Function \"%s(", childs[2]->lineno, func->name );
-						//printTypeList( paraList );
+						printParaTypList( paralist );
 						printf( ")\" is not applicable for arguments \"(");
-						//printArgs( child->child );
+						printArgs(PTab,tab,tabtyp,childs[2]);
 						printf( ")\".\n" );
 					}
 				}
@@ -728,7 +798,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 }
 
 //???
-int Args(SbTab_t **tab, TabTyp_t tabtyp, node_t *node, SbTab_t *paralist)
+int Args(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node, SbTab_t *paralist)
 {
 	if( node==NULL && paralist==NULL )
 		return 0;
@@ -739,14 +809,15 @@ int Args(SbTab_t **tab, TabTyp_t tabtyp, node_t *node, SbTab_t *paralist)
 		return -1;
 	node_t **childs = node->child->ptr;
 	SbTab_t *para = paralist;
-	for(para=paralist;para!=NULL;para=(SbTab_t *)para->hh.next)
-	{
-		SbTab_t *lvar = Exp(tab,tabtyp,childs[0]);
-		if(lvar == NULL)
-			return -1;
-		if(typeCmp(lvar,para)!=0)
-			return -1;
-	}
+
+	SbTab_t *lvar = Exp(PTab,tab,tabtyp,childs[0]);
+	if(lvar == NULL)
+		return -1;
+	if(typeCmp(lvar,para)!=0)
+		return -1;
+	if(children == 3)
+		return Args(PTab,tab,tabtyp,childs[2], para->hh.next);
+
 	return 0;
 }
 
@@ -822,8 +893,60 @@ SbTab_t *LookUpSymbol(SbTab_t **tab,char *name, SbTab_t *result)
 	SbTab_t *ret=NULL;
 	while(ret==NULL && tab!=NULL && *tab!=NULL)
 	{
-		ret = FindSymbol(tab,name,ret);
-		tab=&((*tab)->parent);
+		ret = FindSymbol(tab,name,result);
+		
+		if((*tab)->parent !=NULL)
+		{
+			tab=&((*tab)->parent);
+			if(ret == NULL && tab !=NULL )
+				if((*tab)->SbType == FUNCDEF)
+				{
+					FuncTab_t *fundef = (FuncTab_t *)((*tab)->SubTab);
+					if(fundef !=NULL)
+					{
+						SbTab_t ** ParaTab = &(fundef->paraList);
+						ret = FindSymbol(ParaTab,name,result);
+					}
+				}
+		}
+		else break;
 	}
 	return ret;
+}
+
+
+int printParaTypList(SbTab_t *paralist)
+{
+	SbTab_t *para = paralist;
+	for(;para!=NULL;para=(SbTab_t *)(para->hh.next))
+	{
+		switch(para->SbType)
+		{
+			case INT_T:printf("int");break;
+			case FLOAT_T: printf("float");break;
+			case ARRAY: printf(" ");break;
+			case STRUCT_T:printf(" ");break;
+			default:break;
+		}
+		if(para->hh.next != NULL)
+			printf(" ,");
+	}
+	return 0;
+}
+
+int printArgs(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp, node_t *node)
+{
+	int children = haschildren(node);
+	if(children == -1)
+		return -1;
+	node_t **childs = node->child->ptr;
+
+	SbTab_t *rval = Exp(PTab,tab,tabtyp,childs[0]);
+	printf("%s",rval->name);
+	if(children==3)
+	{
+		printf(", ");
+		printArgs(PTab,tab,tabtyp,childs[2]);
+	}
+	return 0;
 }

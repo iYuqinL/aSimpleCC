@@ -55,8 +55,8 @@ int syntaxtree_addchild(struct node_t* parent, struct node_t* childval)
         printf("fist time to add child\n");
         #endif
     }
-    if(childval!=NULL)
-        arraypush_back(parent->child,childval);
+//    if(childval!=NULL)
+    arraypush_back(parent->child,childval);
     return 0;
 }
 
@@ -74,8 +74,8 @@ int syntaxtree_addchildren(struct node_t* parent, int num, ...)
     for(int i=0;i<num;++i)
     {
         temp = va_arg(valist,struct node_t*);
-        if(temp != NULL)
-            arraypush_back(parent->child,temp);
+//        if(temp != NULL)
+        arraypush_back(parent->child,temp);
     }
     return 0;
 }
