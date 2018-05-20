@@ -9,7 +9,8 @@ do
 #    resultfile=${resultpath}${resultfilename}${i}${posfix}
 
     srcfile=${srcpath}${srcfilename}${i}".c"
-    echo "\033[32;1m \n\n\nrunning the basic test ${i}:\033[0m"
+    echo "\033[32;1m \n\nrunning the basic test ${i}:\033[0m"
 
     ./parser ${srcfile}
+    echo "\n\n"
 done

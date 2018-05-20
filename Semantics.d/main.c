@@ -32,9 +32,11 @@ int main(int argc, char** argv)
     }
     yyrestart(f);
     yyparse();
-//    if(errorflag==0)
-//        T->printsyntaxtree(T,T->root,0);
-    Program(NULL,T);
+    if(errorflag==0)
+    {
+        //T->printsyntaxtree(T,T->root,0);
+        Program(NULL,T);
+    }    
     T->destroy(T);
     return 0;
 }

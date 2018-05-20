@@ -84,6 +84,7 @@ ExtDefList : ExtDef ExtDefList  {$$=allocnewnode("ExtDefList",($1->lineno)," ");
            ;
 ExtDef : Specifier ExtDecList SEMI      {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
        | Specifier SEMI                 {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,2,$1,$2);}
+       | Specifier FunDec SEMI          {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
        | Specifier FunDec CompSt        {$$=allocnewnode("ExtDef",($1->lineno)," ");T->addchildren($$,3,$1,$2,$3);}
        | Specifier error                {errorflag=1;lyyerror("missing ';'"); }
        ;

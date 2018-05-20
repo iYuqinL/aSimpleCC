@@ -63,8 +63,9 @@ int ExtDef(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 	int children=0;
 	if(children=haschildren(node)==-1)
 		return -1;
-	SbTab_t *type=Specifier(PTab,tab,tabtyp,node->child->ptr[0]);
-	node_t *child=node->child->ptr[1];
+	node_t **childs = node->child->ptr;
+	SbTab_t *type=Specifier(PTab,tab,tabtyp,childs[0]);
+	node_t *child=childs[1];
 	if(strcmp(child->name,"ExtDecList")==0)
 	{
 		//ExtDef: Specifier ExtDecList SEMI
@@ -75,36 +76,95 @@ int ExtDef(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 		//ExtDef: Specifier SEMI
 		return 0;
 	}
-	else //函数定义
+	else //函数定义 或声明
 	{
-		//ExtDef: Specifier FunDec Compst
-		FuncTab_t *fun=FunDec(PTab,child,type);
-		SbTab_t *sb;
-		sb = FindSymbol(tab,fun->name,sb);
-		if(sb==NULL)
+		if(strcmp(childs[2]->name,"SEMI")==0) //dec
 		{
-			sb=AllocSymbol(fun->name,FUNCDEF);
-			sb->SubTab=fun;
-			InsertSymbol(tab,sb);
-			SbTab_t **fundef = (SbTab_t**)malloc(sizeof(SbTab_t*));
-			*fundef=AllocSbTab();
-			*fundef = CompSt(sb,fundef,FUNDEF_TAB, node->child->ptr[2],fun->retType);
-			fun->FuncDef=(*fundef);
-			fun->hasDef = 1;
-			fun->parent=sb;
-			setFunParent(sb,&fun);
+			FuncTab_t *fun=FunDec(PTab,child,type);
+			SbTab_t *sb;
+			sb = FindSymbol(tab,fun->name,sb);
+			if(sb==NULL)
+			{
+				sb=AllocSymbol(fun->name,FUNCDEC);
+				sb->SubTab=fun;
+				InsertSymbol(tab,sb);
+				//SbTab_t **fundef = (SbTab_t**)malloc(sizeof(SbTab_t*));
+				//*fundef=AllocSbTab();
+				//*fundef = CompSt(sb,fundef,FUNDEF_TAB, node->child->ptr[2],fun->retType);
+				//fun->FuncDef=(*fundef);
+				fun->hasDef = 0;
+				fun->lineo = child->lineno;
+				fun->parent=sb;
+				setFunParent(sb,&fun);
+			}
+			else if(sb->SbType==FUNCDEF)
+			{
+				SbTab_t **list1 = &(fun->paraList);
+				FuncTab_t *fun2 = (FuncTab_t *)(sb->SubTab);
+				SbTab_t **list2 = &(fun2->paraList);
+				if(FunParasCmp(list1,list2)!=0)
+				{
+					printf( "Error type 19 at line %d: Inconsistent declaration of function \"%s\".\n", child->lineno,fun->name);
+					return FUNC_REDEF;
+				}
+			}
+			else if(sb->SbType == FUNCDEC)
+			{
+				SbTab_t **list1 = &(fun->paraList);
+				FuncTab_t *fun2 = (FuncTab_t *)(sb->SubTab);
+				SbTab_t **list2 = &(fun2->paraList);
+				if(FunParasCmp(list1,list2)!=0)
+				{
+					printf( "Error type 19 at line %d: Inconsistent declaration of function \"%s\".\n", child->lineno,fun->name);
+					return FUNC_REDEF;
+				}
+			}
+			else if(sb->SbType==FUNCCALL)
+			{
+				printf( "Error type 2 at line %d: undefined function \"%s\".\n", child->lineno,fun->name);
+				return FUNC_NDEF;
+			}
 		}
-		else if(sb->SbType==FUNCDEF)
-		{
-			printf( "Error type 4 at line %d: Redefined function \"%s\".\n", child->lineno,fun->name);
-			return FUNC_REDEF;
+		else if(strcmp(childs[2]->name,"CompSt")==0) //def
+		{//ExtDef: Specifier FunDec CompSt
+			FuncTab_t *fun=FunDec(PTab,child,type);
+			SbTab_t *sb;
+			sb = FindSymbol(tab,fun->name,sb);
+			if(sb==NULL)
+			{
+				sb=AllocSymbol(fun->name,FUNCDEF);
+				sb->SubTab=fun;
+				InsertSymbol(tab,sb);
+				SbTab_t **fundef = (SbTab_t**)malloc(sizeof(SbTab_t*));
+				*fundef=AllocSbTab();
+				*fundef = CompSt(sb,fundef,FUNDEF_TAB, node->child->ptr[2],fun->retType);
+				fun->FuncDef=(*fundef);
+				fun->hasDef = 1;
+				fun->parent=sb;
+				fun->lineo = child->lineno;
+				setFunParent(sb,&fun);
+			}
+			else if(sb->SbType==FUNCDEF)
+			{
+				printf( "Error type 4 at line %d: Redefined function \"%s\".\n", child->lineno,fun->name);
+				return FUNC_REDEF;
+			}
+			else if(sb->SbType==FUNCCALL)
+			{
+				printf( "Error type 2 at line %d: undefined function \"%s\".\n", child->lineno,fun->name);
+				return FUNC_NDEF;
+			}
+			else if(sb->SbType == FUNCDEC) //前面函数声明 对应的定义
+			{
+				SbTab_t **fundef = (SbTab_t**)malloc(sizeof(SbTab_t*));
+				*fundef=AllocSbTab();
+				*fundef = CompSt(sb,fundef,FUNDEF_TAB, node->child->ptr[2],fun->retType);
+				fun->FuncDef=(*fundef);
+				fun->hasDef = 1;
+				fun->parent=sb;
+				setFunParent(sb,&fun);
+			}
 		}
-		else if(sb->SbType==FUNCCALL)
-		{
-			printf( "Error type 2 at line %d: undefined function \"%s\".\n", child->lineno,fun->name);
-			return FUNC_NDEF;
-		}
-
 	}
 	return 0;
 
@@ -623,7 +683,7 @@ SbTab_t *Exp(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				}
 				//判断左右是否类型匹配
 				rval = Exp(PTab,tab,tabtyp,childs[2]);
-				if(lvar == NULL && rval == NULL)
+				if(lvar == NULL || rval == NULL)
 					return NULL;
 				if(typeCmp(lvar,rval)==0)
 					return lvar;
@@ -735,7 +795,7 @@ SbTab_t *Exp(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 			}
 			if(Sy!=NULL)
 			{
-				if(Sy->SbType != FUNCDEF)
+				if(Sy->SbType != FUNCDEF && Sy->SbType != FUNCDEC)
 				{
 					printf( "Error type 11 at line %d: \"%s\" is not a function.\n", childs[0]->lineno, childs[0]->ID_type);
 					return NULL;
@@ -840,7 +900,7 @@ int typeCmp(SbTab_t *a, SbTab_t *b)
 		switch(a->SbType)
 		{
 			case ARRAY:return arraytypeCmp((arr_t*)a->SubTab,(arr_t*)b->SubTab);break;
-			case STRUCT_T:StTypeCmp((SbTab_t**)(&(a->SubTab)),(SbTab_t **)(&(b->SubTab)));break;
+			case STRUCT_T:return StTypeCmp((SbTab_t**)(&(a->SubTab)),(SbTab_t **)(&(b->SubTab)));break;
 			default:break;
 		}
 	}
@@ -879,9 +939,9 @@ int StTypeCmp(SbTab_t **a,SbTab_t **b)
 				return -1;
 			SbTab_t *s;
 			SbTab_t *btmp;
-			for(s=*a;s!=NULL;s=s->hh.next)
+			for(s=*a,btmp=*b;s!=NULL&&btmp!=NULL;s=s->hh.next,btmp=btmp->hh.next)
 			{
-				btmp = FindSymbol(b,s->name,btmp);
+//				btmp = FindSymbol(b,s->name,btmp);
 				if(typeCmp(s,btmp)!=0)
 					return -1;
 			}
@@ -890,6 +950,29 @@ int StTypeCmp(SbTab_t **a,SbTab_t **b)
 	return -1;
 }
 
+int FunParasCmp(SbTab_t **a,SbTab_t **b)
+{
+	if(a==NULL && b==NULL)
+		return 0;
+	if(*a==NULL && *b==NULL)
+		return 0;
+	if(a!=NULL && b!=NULL)
+		if(*a != NULL && *b !=NULL)
+		{
+			if(GetSbTabSize(a)!=GetSbTabSize(b))
+				return -1;
+			SbTab_t *s;
+			SbTab_t *btmp;
+			for(s=*a,btmp=*b;s!=NULL&&btmp!=NULL;s=s->hh.next,btmp=btmp->hh.next)
+			{
+//				btmp = FindSymbol(b,s->name,btmp);
+				if(typeCmp(s,btmp)!=0)
+					return -1;
+			}
+			return 0;				
+		}
+	return -1;
+}
 
 SbTab_t *LookUpSymbol(SbTab_t **tab,char *name, SbTab_t *result)
 {

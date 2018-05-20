@@ -5,7 +5,7 @@ struct Position
 
 int func(int a);
 
-int func(struct Position p);
+int func(float b);
 
 int main()
 {

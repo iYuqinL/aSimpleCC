@@ -24,6 +24,7 @@ typedef enum SymbolType_t
 	FUNCDEF=4, //函数定义
 	FUNCCALL=5, //函数调用
 	SUBTAB=6,
+	FUNCDEC=7,
 }SbType_t;
 
 
@@ -63,6 +64,7 @@ typedef struct StructTable_t
 typedef struct FunctionTable_t
 {
 	char *name;
+	int lineo;
 	int hasDef;
 	SbTab_t *parent;
 	SbTab_t *retType;

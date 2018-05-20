@@ -61,9 +61,12 @@ int Args(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *para
 int typeCmp(SbTab_t *a, SbTab_t *b);
 int arraytypeCmp(arr_t *a, arr_t*b);
 int StTypeCmp(SbTab_t **a,SbTab_t **b);
+int FunParasCmp(SbTab_t **list1,SbTab_t **list2);
 
 SbTab_t *LookUpSymbol(SbTab_t **tab,char *name, SbTab_t *result);
 
 int printParaTypList(SbTab_t *paralist);
 int printArgs(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp, node_t *node);
+
+
 #endif
