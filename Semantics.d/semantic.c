@@ -290,6 +290,7 @@ SbTab_t *VarDec(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_
 			{
 				case STRUCTFILED: printf("Error type 15 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
 				case BASIC_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
+				case FUNDEF_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
 				default:break;
 			}
 			
@@ -671,7 +672,7 @@ SbTab_t *Exp(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 					printf( "Error type 14 at line %d: Non-existent field \"%s\".\n", childs[0]->lineno,childs[2]->ID_type );
 					return NULL;
 				}
-				return lvar; //
+				return tmp; //
 			}
 		}
 		else if(children == 4)
@@ -840,8 +841,10 @@ int typeCmp(SbTab_t *a, SbTab_t *b)
 		{
 			case ARRAY:return arraytypeCmp((arr_t*)a->SubTab,(arr_t*)b->SubTab);break;
 			case STRUCT_T:StTypeCmp((SbTab_t**)(&(a->SubTab)),(SbTab_t **)(&(b->SubTab)));break;
+			default:break;
 		}
 	}
+	return 0;
 }
 
 int arraytypeCmp(arr_t *a, arr_t*b)
