@@ -32,11 +32,13 @@ int main(int argc, char** argv)
     }
     yyrestart(f);
     yyparse();
+    SbTab_t *gtab=NULL;
     if(errorflag==0)
     {
         //T->printsyntaxtree(T,T->root,0);
-        Program(NULL,T);
+        gtab = Program(NULL,T);
     }    
     T->destroy(T);
+    ClearSbTab(&gtab);
     return 0;
 }
