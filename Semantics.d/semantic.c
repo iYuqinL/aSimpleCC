@@ -35,13 +35,13 @@ SbTab_t *Program(SbTab_t *PTab,Sytree_t *sytree)
 	return gTab;
 }
 
-int ExtDefList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
+SbTab_t *ExtDefList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 {
 	if(haschildren(node)==-1)
 		return 0;
 	ExtDef(PTab,tab,tabtyp,node->child->ptr[0]);
 	ExtDefList(PTab,tab,tabtyp,node->child->ptr[1]);
-	return 0;
+	return *tab;
 }
 
 int setFunParent(SbTab_t *parent,FuncTab_t **fun)
@@ -56,9 +56,10 @@ int setFunParent(SbTab_t *parent,FuncTab_t **fun)
 		if((*fun)->FuncDef!=NULL)
 			(*fun)->FuncDef->parent=parent;
 	}
+	return 0;
 }
 
-int ExtDef(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
+SbTab_t *ExtDef(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 {
 	int children=0;
 	if(children=haschildren(node)==-1)
@@ -171,11 +172,11 @@ int ExtDef(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 }
 
 //
-int ExtDecList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type)
+SbTab_t *ExtDecList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 {
 	int children=haschildren(node);
 	if(children==-1)
-		return -1;
+		return NULL;
 
 	//ExtDecList:VarDec 
 	SbTab_t *vardec=VarDec(PTab,tab, tabtyp,node->child->ptr[0],type);
@@ -196,7 +197,7 @@ int ExtDecList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_
 		//ExtDecList:VarDec COMMA ExtDecList
 		ExtDecList(PTab,tab,tabtyp,node->child->ptr[2],type);
 	}
-	return 0;
+	return *tab;
 }
 
 //返回一个符号，并且该符号已经插入到tab里面
@@ -492,22 +493,22 @@ SbTab_t *CompSt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node,SbTab_
 }
 
 //
-int StmtList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
+SbTab_t * StmtList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 {
 	int children=haschildren(node);
 	if(children==-1)
 		return 0;
 	Stmt(PTab,tab,tabtyp,node->child->ptr[0],retT);
 	StmtList(PTab,tab,tabtyp,node->child->ptr[1],retT);
-	return 0;
+	return *tab;
 }
 
 //
-int Stmt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
+SbTab_t *Stmt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 {
 	int children=haschildren(node);
 	if(children==-1)
-		return 0;
+		return NULL;
 	node_t **childs=node->child->ptr;
 	if(strcmp(childs[0]->name,"Exp")==0)
 	{//Stmt: Exp SEMI
@@ -558,6 +559,7 @@ int Stmt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *ret
 			Stmt(PTab,tab,tabtyp,childs[6],retT);
 		}
 	}
+	return *tab;
 }
 
 SbTab_t* DefList(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp, node_t *node)

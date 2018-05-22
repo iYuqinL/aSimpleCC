@@ -33,9 +33,9 @@ typedef enum TableType_t
 }TabTyp_t;
 
 SbTab_t *Program(SbTab_t *PTab, Sytree_t *sytree);
-int ExtDefList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node);
-int ExtDef(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node);
-int ExtDecList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type);
+SbTab_t *ExtDefList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node);
+SbTab_t *ExtDef(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node);
+SbTab_t *ExtDecList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type);
 
 SbTab_t *Specifier(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node);
 SbTab_t *StructSpecifier(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp, node_t *node);
@@ -46,8 +46,8 @@ SbTab_t *VarList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node);
 SbTab_t *ParamDec(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node);
 
 SbTab_t *CompSt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp,node_t *node,SbTab_t *retT);
-int StmtList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT);
-int Stmt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT);
+SbTab_t *StmtList(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT);
+SbTab_t *Stmt(SbTab_t *PTab,SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT);
 
 SbTab_t *DefList(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp, node_t *node);
 SbTab_t *Def(SbTab_t *PTab,SbTab_t **tab,TabTyp_t tabtyp,node_t *node);
