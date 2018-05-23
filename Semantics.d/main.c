@@ -39,6 +39,6 @@ int main(int argc, char** argv)
         gtab = Program(T);
     }    
     T->destroy(T);
-//    ClearSbTab(&gtab);
+    ClearSbTab(&gtab);
     return 0;
 }

@@ -437,8 +437,11 @@ FuncTab_t *FunDec( node_t *node, SbTab_t *retT)
 	ret=(FuncTab_t*)malloc(sizeof(FuncTab_t));
 	memset(ret,0,sizeof(FuncTab_t));
 	ret->retType=retT;
-	
-	ret->name=node->child->ptr[0]->ID_type;
+	char*t;
+    t=(char*)malloc(sizeof(char )*(strlen(node->child->ptr[0]->ID_type)+1));
+	strcpy(t,node->child->ptr[0]->ID_type);
+	ret->name=t;
+	//ret->name=node->child->ptr[0]->ID_type;
 	if(children>3)
 	{ //FunDec : ID LP VarList RP
 		//SbTab_t **ParaListTab=(SbTab_t **)malloc(sizeof(SbTab_t *));

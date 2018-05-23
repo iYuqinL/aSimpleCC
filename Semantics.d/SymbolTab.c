@@ -97,6 +97,7 @@ int DeleteSymbol(SbTab_t **tab,SbTab_t *symbol)
 	{
 		ClearArrayList((arr_t*)(symbol->SubTab));
 	}
+	free(symbol->name);
 	free(symbol);
 	return 0;
 }
@@ -134,83 +135,9 @@ int PrintSymbolTab(SbTab_t **tab)
 
 int ClearFuncTab(FuncTab_t *tab)
 {
-	ClearSbTab(&(tab->retType));
+	free(tab->name);
+//	ClearSbTab(&(tab->retType));
 	ClearSbTab(&(tab->paraList));
 	ClearSbTab(&(tab->FuncDef));
 	return 0;
 }
-
-/*
-//Strcut table operation
-StTab_t *AllocStTab()
-{
-	StTab_t *ret=NULL;
-	return ret;
-}
-StTab_t *AllocStItem(char *name,SbType_t type)
-{
-	StTab_t *ret;
-	ret=(StTab_t*)malloc(sizeof(StTab_t));
-	strcpy(ret->name,name);
-	ret->SbType=type;
-//	ret->depth=depth;
-	return ret;
-}
-unsigned int GetStTabSize(StTab_t **tab)
-{
-	unsigned int ret;
-	ret=HASH_COUNT(*tab);
-	return ret;
-}
-int InsertStItem(StTab_t **tab, StTab_t *item)
-{
-	HASH_ADD_KEYPTR( hh, *tab, item->name, strlen(item->name), item );
-	return 0;
-}
-StTab_t *FindStItem(StTab_t **tab, const char *name, StTab_t *result)
-{
-	HASH_FIND_STR(*tab,name,result);
-	return result;
-}
-int DeleteStItem(StTab_t **tab, StTab_t *item)
-{
-	HASH_DEL(*tab,item);
-	if(item->SbType==STRUCT_T)
-	{
-		ClearSymbolTab((SbTab_t*)&(item->SubTab));
-	}
-	else if(item->SbType==FUNCDEF)
-	{
-
-	}
-	free(item);
-	return 0;
-}
-int ClearStTab(StTab_t **tab)
-{
-	SbTab_t *cur, *tmp;
-	HASH_ITER(hh, *tab, cur, tmp) {
-		DeleteSymbol(*tab,cur);
-//		free(cur);
-	}
-	return 0;
-}
-int PrintStTab(StTab_t **tab)
-{
-
-	StTab_t *s;
-	for(s=*tab;s!=NULL;s=s->hh.next)
-	{
-		printf("Symbol name is %s, ",s->name);
-		switch(s->SbType)
-		{
-			case BASIC: printf("It is a basic symbol\n");break;
-			case ARRAY: printf("It is a array\n");break;
-			case FUNCDEF: printf("It is a Function\n");break;
-			case STRUCT_T: printf("It is a Struct\n");break;
-			default:break;
-		}
-	}
-	return 0;
-}
-*/
