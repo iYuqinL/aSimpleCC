@@ -7,9 +7,4 @@ int func(int a)
 
 int main()
 {
-    int i = 0;
-    if(i==0)
-    {
-        func(i);
-    }
 }

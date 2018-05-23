@@ -163,7 +163,10 @@ SbTab_t *ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 			}
 			else if(sb->SbType == FUNCDEC) //前面函数声明 对应的定义
 			{
-				
+				sb=AllocSymbol(fun->name,FUNCDEF);
+				sb->SubTab=fun;
+				InsertSymbol(tab,sb);
+
 				SbTab_t *fundef=AllocSbTab(FuncDefTabHeader);
 				fundef->parent=sb;
 				fundef = CompSt(&fundef,FUNDEF_TAB, node->child->ptr[2],fun->retType);
@@ -188,7 +191,7 @@ SbTab_t *ExtDecList(SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 	//ExtDecList:VarDec 
 	SbTab_t *vardec=VarDec(tab, tabtyp,node->child->ptr[0],type);
 	//不对符号表处理，交到VarDec去处理
-/*	SbTab_t *tmp=NULL;
+	/*SbTab_t *tmp=NULL;
 	tmp =FindSymbol(tab,vardec->name,tmp);
 	if(tmp==NULL)
 	{
@@ -198,7 +201,8 @@ SbTab_t *ExtDecList(SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 	{
 		printf("Error type 3 at line %d: redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->name);
 		return VAR_REDEF;
-	}*/
+	}
+	*/
 	if(children>1)
 	{
 		//ExtDecList:VarDec COMMA ExtDecList
@@ -539,10 +543,11 @@ SbTab_t *Stmt(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 		strcat(tmp,tmpi);
 		strcpy(SubTabName,tmp);
 		SbTab_t *Sy=AllocSymbol(SubTabName,SUBTAB);
-		InsertSymbol(tab,Sy);
 		//SbTab_t **SubTab = (SbTab_t **)malloc(sizeof(SbTab_t *));
 		SbTab_t *SubTab=AllocSbTab(SubTabHeader);
+		Sy->SubTab = SubTab;
 		SubTab->parent = Sy;
+		InsertSymbol(tab,Sy);
 		Sy->SubTab = CompSt(&SubTab,SUBBASIC_TAB,childs[0],retT);
 		// if(SubTab!=NULL)
 		// 	(SubTab)->parent=Sy;
@@ -885,6 +890,7 @@ int Args(SbTab_t **tab, TabTyp_t tabtyp, node_t *node, SbTab_t *paralist)
 		return -1;
 	node_t **childs = node->child->ptr;
 	SbTab_t *para = paralist;
+	para =(SbTab_t *) para->hh.next;
 
 	SbTab_t *lvar = Exp(tab,tabtyp,childs[0]);
 	if(lvar == NULL)
@@ -978,7 +984,7 @@ int FunParasCmp(SbTab_t **a,SbTab_t **b)
 				return -1;
 			SbTab_t *s;
 			SbTab_t *btmp;
-			for(s=*a,btmp=*b;s!=NULL&&btmp!=NULL;s=s->hh.next,btmp=btmp->hh.next)
+			for(s=(*a)->hh.next,btmp=(*b)->hh.next;s!=NULL&&btmp!=NULL;s=s->hh.next,btmp=btmp->hh.next)
 			{
 //				btmp = FindSymbol(b,s->name,btmp);
 				if(typeCmp(s,btmp)!=0)
@@ -996,7 +1002,7 @@ SbTab_t *LookUpSymbol(SbTab_t **tab,char *name, SbTab_t *result)
 	{
 		ret = FindSymbol(tab,name,result);
 		
-		if((*tab)->parent !=NULL)
+		if((*tab)->parent !=NULL && ret ==NULL)
 		{
 			tab=&((*tab)->parent);
 			if(ret == NULL && tab !=NULL )
@@ -1010,6 +1016,13 @@ SbTab_t *LookUpSymbol(SbTab_t **tab,char *name, SbTab_t *result)
 					}
 				}
 		}
+		else if(((*tab)->hh.prev)!=NULL)
+		{
+			while (((*tab)->hh.prev)!=NULL)
+			{
+				tab = (SbTab_t **)(&((*tab)->hh.prev));
+			}
+		}
 		else break;
 	}
 	return ret;
@@ -1018,7 +1031,7 @@ SbTab_t *LookUpSymbol(SbTab_t **tab,char *name, SbTab_t *result)
 
 int printParaTypList(SbTab_t *paralist)
 {
-	SbTab_t *para = paralist;
+	SbTab_t *para = paralist->hh.next;
 	for(;para!=NULL;para=(SbTab_t *)(para->hh.next))
 	{
 		switch(para->SbType)
