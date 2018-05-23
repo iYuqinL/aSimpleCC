@@ -40,9 +40,9 @@ int ClearArrayList(arr_t *a);
 
 typedef struct SymbolTab_t
 {
+	int refcount;
 	char *name;
 	SbType_t SbType;
-
 	//父亲符号表
 	struct SymbolTab_t *parent;
 	//Array, Struct, Function

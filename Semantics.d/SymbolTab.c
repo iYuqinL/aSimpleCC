@@ -45,6 +45,7 @@ SbTab_t *AllocSymbol(const char *namev,SbType_t type)
 	strcpy(t,namev);
 	ret->name=t;
 	ret->SbType=type;
+	ret->refcount = 0;
 //	ret->depth=depth;
 //	if(ret->SbType!=INT_T)
 	ret->SubTab=NULL;
@@ -97,6 +98,7 @@ int DeleteSymbol(SbTab_t **tab,SbTab_t *symbol)
 	{
 		ClearArrayList((arr_t*)(symbol->SubTab));
 	}
+//	printf("delete symbol: %s \n",symbol->name);
 	free(symbol->name);
 	free(symbol);
 	return 0;
@@ -106,8 +108,14 @@ int ClearSbTab(SbTab_t **tab)
 {
 	if(tab==NULL || *tab==NULL)
 		return 0;
+	if((*tab)->refcount > 0 )
+	{
+		(*tab)->refcount -= 1;
+		return 0;
+	}
+//	printf("clear %s table.\n",(*tab)->name);
 	SbTab_t *cur, *tmp;
-	HASH_ITER(hh, *tab, cur, tmp) {
+	HASH_ITER(hh, *tab, cur, tmp){
 		DeleteSymbol(tab,cur);
 //		free(cur);
 	}

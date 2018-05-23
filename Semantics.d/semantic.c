@@ -191,18 +191,6 @@ SbTab_t *ExtDecList(SbTab_t **tab, TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 	//ExtDecList:VarDec 
 	SbTab_t *vardec=VarDec(tab, tabtyp,node->child->ptr[0],type);
 	//不对符号表处理，交到VarDec去处理
-	/*SbTab_t *tmp=NULL;
-	tmp =FindSymbol(tab,vardec->name,tmp);
-	if(tmp==NULL)
-	{
-		InsertSymbol(tab,vardec);
-	}
-	else
-	{
-		printf("Error type 3 at line %d: redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->name);
-		return VAR_REDEF;
-	}
-	*/
 	if(children>1)
 	{
 		//ExtDecList:VarDec COMMA ExtDecList
@@ -266,10 +254,6 @@ SbTab_t *StructSpecifier(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 				StTab->parent = StSy;
 				DefList(&StTab,STRUCTFILED,node->child->ptr[3]);
 				StSy->SubTab=StTab;
-				// //父表指针
-				// if(StTab!=NULL)
-				// 	(StTab)->parent=StSy;
-				
 				ret=StSy;
 			}
 			else	//名字重复
@@ -284,14 +268,12 @@ SbTab_t *StructSpecifier(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 		}
 		else //没有名字的结构体,不需要插入tab表
 		{
-			SbTab_t *StSy=AllocSymbol("StName",STRUCT_T); //往tab里插入
+			SbTab_t *StSy=AllocSymbol("StName",STRUCT_T); 
 			//SbTab_t **StTab = (SbTab_t**)malloc(sizeof(SbTab_t *));
 			SbTab_t *StTab=AllocSbTab(StructFieldTabHeader); //结构体域符号表
 			StTab->parent = StSy;
 			DefList(&StTab,STRUCTFILED,node->child->ptr[3]);
 			StSy->SubTab=StTab;
-			// if(StTab!=NULL)
-			// 	(StTab)->parent=StSy;
 			ret=StSy;
 		}
 	}
@@ -300,22 +282,11 @@ SbTab_t *StructSpecifier(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 		//StructSpecifier : STRUCT_T Tag
 		char *StName;
 //		strcpy(StName,child->child->ptr[0]->ID_type);
-		StName=child->child->ptr[0]->ID_type;		
+		StName=child->child->ptr[0]->ID_type;
 		SbTab_t *tmp=NULL;
-//		printf("hh\n");
 		tmp = LookUpSymbol(tab,StName,tmp);
-//		printf("hhh\n");
 		if(tmp==NULL)	//结构体未定义
 		{
-			// if( PTab!=NULL &&PTab->SbType == FUNCDEF)  //函数定义刚进来
-			// {
-			// 	tmp = LookUpSymbol(&StName,tmp);
-			// 	if(tmp == NULL)
-			// 	{
-			// 		printf("Error type 17 at line %d: Undefined structure \"%s\".\n",child->lineno,StName);	
-			// 		return NULL;
-			// 	}
-			// }
 			printf("Error type 17 at line %d: Undefined structure \"%s\".\n",child->lineno,StName);	
 			return NULL;
 		}
@@ -360,6 +331,15 @@ SbTab_t *VarDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 		//VarDec : ID
 		SbTab_t *tmp = NULL;
 		tmp = FindSymbol(tab,node->child->ptr[0]->ID_type,tmp);
+		if(tmp == NULL)
+		{
+			if(strcmp((*tab)->name,FuncDefTabHeader)==0) //函数里面的变量不能与列表的同名
+			{
+				FuncTab_t *funTab = (FuncTab_t *)((*tab)->parent->SubTab);
+				if(funTab->paraList != NULL)
+					tmp = FindSymbol(&(funTab->paraList),ret->name,tmp);
+			}
+		}
 		if(tmp != NULL)
 		{
 			switch(tabtyp)
@@ -372,57 +352,53 @@ SbTab_t *VarDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 			
 			return NULL;
 		}
-		// if( NULL != PTab && PTab->SbType==FUNDEF_TAB)
-		// {
-		// 	FuncTab_t *funTab = (FuncTab_t *)PTab->SubTab;
-		// 	tmp = FindSymbol(&(funTab->paraList),node->child->ptr[0]->ID_type,tmp);
-		// 	if(tmp != NULL)
-		// 	{
-		// 		printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
-		// 		return NULL;
-		// 	}
-		// }
 		if(type==NULL)
 			return NULL;
 		ret=AllocSymbol(node->child->ptr[0]->ID_type,type->SbType);
 		if(type->SbType==STRUCT_T)
 		{
+			//SbTab_t *ptmp = (SbTab_t *)type->SubTab;
+			//ptmp->refcount += 1;
 			ret->SubTab=type->SubTab;
 			ret->parent=type->parent;
 		}
 		//插入符号表
 		InsertSymbol(tab,ret);
-		// if(*tab !=NULL && (*tab)->parent == NULL)
-		// 	(*tab)->parent = PTab;
 	}
 	else //数组类型
 	{
 		ArrayDec(&ret,NULL,node,type->SbType);
 		if(type->SbType==STRUCT_T)
 		{
+			//SbTab_t *ptmp = (SbTab_t *)type->SubTab;
+			//ptmp->refcount += 1;
 			ret->SubTab=type->SubTab;
 			ret->parent=type->parent;
 		}
 		SbTab_t *tmp = NULL;
 		tmp = FindSymbol(tab,ret->name,tmp);
+		if( tmp == NULL)
+		{
+			if(strcmp((*tab)->name,FuncDefTabHeader)==0) //函数里面的变量不能与列表的同名
+			{
+				FuncTab_t *funTab = (FuncTab_t *)((*tab)->parent->SubTab);
+				if(funTab->paraList != NULL)
+					tmp = FindSymbol(&(funTab->paraList),ret->name,tmp);
+			}
+		}
 		if(tmp != NULL)
 		{
-			printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+			switch(tabtyp)
+			{
+				case STRUCTFILED: printf("Error type 15 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
+				case BASIC_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
+				case FUNDEF_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
+				default:break;
+			}
 			return NULL;
 		}
-		// if( NULL != PTab && PTab->SbType==FUNDEF_TAB)
-		// {
-		// 	FuncTab_t *funTab = (FuncTab_t *)PTab->SubTab;
-		// 	tmp = FindSymbol(&(funTab->paraList),ret->name,tmp);
-		// 	if(tmp != NULL)
-		// 	{
-		// 		printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
-		// 		return NULL;
-		// 	}
-		// }
-		InsertSymbol(tab,ret);
-		// if(*tab !=NULL && (*tab)->parent == NULL)
-		// 	(*tab)->parent = PTab;		
+		
+		InsertSymbol(tab,ret);	
 	}
 	return ret;
 }
@@ -466,16 +442,6 @@ SbTab_t *VarList(SbTab_t **tab, TabTyp_t tabtyp, node_t *node)
 		return NULL;
 	SbTab_t *Para, *tmp=NULL;
 	Para=ParamDec(tab,tabtyp,node->child->ptr[0]);
-	// 符号表处理已经交到VarDec
-/*	tmp = FindSymbol(tab,Para->name,tmp);
-	if(tmp==NULL)
-	{
-		InsertSymbol(tab,Para);
-	}
-	else	//名字重复
-	{
-		printf("Error type 100 at line %d: Parameter name Duplicate \"%s\". \n",node->child->ptr[0]->lineno,Para->name);
-	}*/
 	if(children>1)
 	{
 		VarList(tab,tabtyp,node->child->ptr[2]);
