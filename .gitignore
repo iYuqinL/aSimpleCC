@@ -4,4 +4,5 @@
 lex.yy.c
 syntax.tab.h
 syntax.tab.c
+.vscode
 parser
