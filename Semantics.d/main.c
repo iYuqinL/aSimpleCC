@@ -36,9 +36,9 @@ int main(int argc, char** argv)
     if(errorflag==0)
     {
         //T->printsyntaxtree(T,T->root,0);
-        gtab = Program(NULL,T);
+        gtab = Program(T);
     }    
     T->destroy(T);
-    ClearSbTab(&gtab);
+//    ClearSbTab(&gtab);
     return 0;
 }

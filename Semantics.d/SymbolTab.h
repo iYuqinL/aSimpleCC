@@ -25,6 +25,7 @@ typedef enum SymbolType_t
 	FUNCCALL=5, //函数调用
 	SUBTAB=6,
 	FUNCDEC=7,
+	TABHEADER=8,
 }SbType_t;
 
 
@@ -76,8 +77,8 @@ typedef struct FunctionTable_t
 void *AllocTab();
 
 //Symbol table operation
-SbTab_t *AllocSbTab();
-SbTab_t *AllocSymbol(char *name,SbType_t type);
+SbTab_t *AllocSbTab(const char *tableheader);
+SbTab_t *AllocSymbol(const char *name,SbType_t type);
 unsigned int GetSbTabSize(SbTab_t **tab);
 int InsertSymbol(SbTab_t **tab,SbTab_t *symbol);
 SbTab_t *FindSymbol(SbTab_t **tab,const char *name, SbTab_t *result);

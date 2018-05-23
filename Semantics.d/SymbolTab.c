@@ -27,14 +27,16 @@ void *AllocTab()
 }
 
 
-SbTab_t *AllocSbTab()
+SbTab_t *AllocSbTab(const char *tableheader)
 {
 	SbTab_t *ret;
 	ret=NULL;
+	SbTab_t *header = AllocSymbol(tableheader,TABHEADER);
+	InsertSymbol(&ret,header);
 	return ret;
 }
 
-SbTab_t *AllocSymbol(char *namev,SbType_t type)
+SbTab_t *AllocSymbol(const char *namev,SbType_t type)
 {
 	SbTab_t *ret;
 	ret=(SbTab_t *)malloc(sizeof(SbTab_t));
