@@ -12,10 +12,11 @@
 
 static int SubTabCNT=0;
 
-const char *FuncDefTabHeader = "FuncDefTabHeader";
-const char *StructFieldTabHeader = "StructFieldTabHeader";
-const char *ParaListTabHeader = "ParaListTabHeader";
-const char *SubTabHeader = "SubTabHeader";
+const char *FuncDefTabHeader = "____FuncDefTabHeader____";
+const char *StructFieldTabHeader = "____StructFieldTabHeader____";
+const char *ParaListTabHeader = "____ParaListTabHeader____";
+const char *SubTabHeader = "____SubTabHeader____";
+const char *FuncNameTabHeader = "____FuncNameTabHeader____";
 
 int haschildren(node_t *node)
 {
@@ -34,9 +35,27 @@ SbTab_t *Program(Sytree_t *sytree)
 		return 0;
 	if(haschildren(sytree->root)==-1)
 		return 0;
-	SbTab_t *gTab=AllocSbTab("GlobalTab");
+	SbTab_t *gTab=AllocSbTab("____GlobalTab____");
+	SbTab_t *funcNameTab = AllocSbTab(FuncNameTabHeader);
+	SbTab_t *funcNameTabSy = AllocSymbol(FuncNameTabHeader,TABHEADER);
+	funcNameTabSy->SubTab = funcNameTab;
+	funcNameTab->parent = funcNameTabSy;
+	InsertSymbol(&gTab,funcNameTabSy);
 	ExtDefList(&gTab,BASIC_TAB,sytree->root->child->ptr[0]);
 	//do something?
+	for(SbTab_t *iter = funcNameTab->hh.next;iter != NULL; iter = iter->hh.next)
+	{
+		SbTab_t *tmp = NULL;
+		tmp = FindSymbol(&gTab,iter->name,tmp);
+		if(tmp != NULL && (tmp->SbType = FUNCDEC || tmp->SbType == FUNCDEF))
+		{
+			FuncTab_t *func = tmp->SubTab;
+			if(func->hasDef ==0)
+			{
+				printf( "Error type 2 at line %d: undefined function \"%s\".\n", func->lineo,func->name);
+			}
+		}
+	}
 	return gTab;
 }
 
@@ -102,6 +121,12 @@ SbTab_t *ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 				fun->lineo = child->lineno;
 				fun->parent=sb;
 				setFunParent(sb,&fun);
+				//存储函数名，用于后面检查函数是否定义
+				SbTab_t *funcNameTab = (*tab)->hh.next;
+				funcNameTab =(SbTab_t*) funcNameTab->SubTab;
+				SbTab_t *funcNameSy = AllocSymbol(fun->name,FUNCNAME);
+				InsertSymbol(&funcNameTab,funcNameSy);
+
 			}
 			else if(sb->SbType==FUNCDEF)
 			{
@@ -163,10 +188,12 @@ SbTab_t *ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 			}
 			else if(sb->SbType == FUNCDEC) //前面函数声明 对应的定义
 			{
-				sb=AllocSymbol(fun->name,FUNCDEF);
-				sb->SubTab=fun;
-				InsertSymbol(tab,sb);
-
+				// sb=AllocSymbol(fun->name,FUNCDEF);
+				// sb->SubTab=fun;
+				// InsertSymbol(tab,sb);
+				sb->SbType = FUNCDEF;
+				free(fun);
+				fun = sb->SubTab;
 				SbTab_t *fundef=AllocSbTab(FuncDefTabHeader);
 				fundef->parent=sb;
 				fundef = CompSt(&fundef,FUNDEF_TAB, node->child->ptr[2],fun->retType);
@@ -503,9 +530,9 @@ SbTab_t *Stmt(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 		//需要新建一个子表，并把它放到tab
 		//子表的名字应该如何处理？
 		//目前采用计数器的办法。SubTabCNT为一个全局变量
-		char SubTabName[30];
-		char tmp[20];
-		strcpy(tmp,"SubCompStTab");
+		char SubTabName[35];
+		char tmp[21];
+		strcpy(tmp,"____SubCompStTab____");
 		char tmpi[10];
 //		itoa(SubTabCNT,tmpi,10);
 		sprintf(tmpi,"%d",SubTabCNT);
@@ -790,11 +817,11 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 					return NULL;
 				}
 				FuncTab_t *func = (FuncTab_t*)Sy->SubTab;
-				if( func->hasDef==0)
-				{
-					printf( "Error type 2 at line %d: Undefined function \"%s\".\n", childs[0]->lineno, childs[0]->ID_type );
-					return NULL;
-				}
+				// if( func->hasDef==0)
+				// {
+				// 	printf( "Error type 2 at line %d: Undefined function \"%s\".\n", childs[0]->lineno, childs[0]->ID_type );
+				// 	return NULL;
+				// }
 				SbTab_t *paralist = func->paraList;
 				if(strcmp(childs[2]->name,"RP")==0)
 				{
