@@ -26,6 +26,7 @@ typedef enum SymbolType_t
 	SUBTAB=6,
 	FUNCDEC=7,
 	TABHEADER=8,
+	FUNCNAME = 9,
 }SbType_t;
 
 
@@ -73,6 +74,7 @@ typedef struct FunctionTable_t
 	SbTab_t *FuncDef;
 }FuncTab_t;
 
+
 //common operation
 void *AllocTab();
 
@@ -85,17 +87,7 @@ SbTab_t *FindSymbol(SbTab_t **tab,const char *name, SbTab_t *result);
 int DeleteSymbol(SbTab_t **tab,SbTab_t *symbol);
 int ClearSbTab(SbTab_t **tab);
 int PrintSbTab(SbTab_t **tab);
-/*
-//Strcut table operation
-StTab_t *AllocStTab();
-StTab_t *AllocStItem(char *name,SbType_t type,int depth);
-unsigned int GetStTabSize(StTab_t **tab);
-int InsertStItem(StTab_t **tab, StTab_t *item);
-StTab_t *FindStItem(StTab_t **tab, const char *name, StTab_t *result);
-int DeleteStItem(StTab_t **tab, StTab_t *item);
-int ClearStTab(StTab_t **tab);
-int PrintStTab(StTab_t **tab);
-*/
+
 
 //Function table operation
 int ClearFuncTab(FuncTab_t *tab);
