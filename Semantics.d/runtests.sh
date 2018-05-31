@@ -1,6 +1,6 @@
 #!/bin/bash
 
-srcpath="./sample/"
+srcpath="./sample.d/"
 srcfilename=""
 posfix=".txt"
 
