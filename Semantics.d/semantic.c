@@ -638,15 +638,17 @@ SbTab_t *Dec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 			if(children>2)
 			{//Dec: VarDec ASSIGNOP Exp
 				if(tabtyp==STRUCTFILED)
+				{
 					printf( "Error type 15 at line %d: variable can not be initialed in struct field \"%s\".\n", childs[0]->lineno, vardec->name);
-				return NULL;
-			}
-			SbTab_t *rval=Exp(tab,tabtyp,childs[2]);
-			if(vardec != NULL && rval != NULL && typeCmp(vardec,rval)!=0)
-			{
-				printf( "Error type 5 at line %d: Type mismatched for assignment.\n", childs[0]->lineno);
-				return NULL;
-			}
+					return NULL;
+				}
+				SbTab_t *rval=Exp(tab,tabtyp,childs[2]);
+				if(vardec != NULL && rval != NULL && typeCmp(vardec,rval)!=0)
+				{
+					printf( "Error type 5 at line %d: Type mismatched for assignment.\n", childs[0]->lineno);
+					return NULL;
+				}
+            }
 //			InsertSymbol(tab,vardec);
 //		}
 /*		else //变量名重复
