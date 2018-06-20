@@ -1384,7 +1384,7 @@ int fwriteAllOp(IRCodeList_t *codelist, const char *filename)
 	fclose(fp);
 }
 
-int optGotoCode(IRCodeList_t *codelist)
+int optInterCode(IRCodeList_t *codelist)
 {
 	optGotoCode(codelist);
 	deleteNullLebel(codelist);
@@ -1394,20 +1394,237 @@ int optGotoCode(IRCodeList_t *codelist)
 	deleteNullLebel(codelist);
 	return 0;
 }
+
+int optGotoCode(IRCodeList_t *codelist)
+{
+	InterCode_t *p = codelist->Head;
+	while(p!=NULL){
+		if(p->kind == IF_GOTO_CODE){
+			//1.转化为fall模式的IF_GOTO: 将
+			//IF v1 RELOP v2 GOTO LABEL 1
+			//GOTO LABEL 2
+			//LABEL 1
+			//转化为
+			//IF v1 ~RELOP v2 GOTO LABEL2
+			//LABEL 1
+			InterCode_t* c1 = p;
+			InterCode_t* c2 = p->nextCode;
+			if(c2==NULL){
+				p = p->nextCode;
+				continue;
+			}
+			InterCode_t* c3 = c2->nextCode;
+			if(c3==NULL){
+				p = p->nextCode;
+				continue;
+			}
+			if(c2->kind==GOTO_CODE && c3->kind==LABEL_CODE && c1->u.tribleop.gotoLabel==c3->u.singleop.op && c2->u.singleop.op!=c3->u.singleop.op){
+				c1->u.tribleop.gotoLabel = c2->u.singleop.op;
+				deleteIRCode(codelist,c2);
+				//下面将RELOP取反
+				char* newRelop = malloc(3*sizeof(char));
+				memset(newRelop, 0, 3*sizeof(char));
+				if( strcmp(c1->u.tribleop.relop,"==")==0 ) strcpy(newRelop,"!=");
+				if( strcmp(c1->u.tribleop.relop,"!=")==0 ) strcpy(newRelop,"==");
+				if( strcmp(c1->u.tribleop.relop,"<")==0 ) strcpy(newRelop,">=");
+				if( strcmp(c1->u.tribleop.relop,">")==0 ) strcpy(newRelop,"<=");
+				if( strcmp(c1->u.tribleop.relop,"<=")==0 ) strcpy(newRelop,">");
+				if( strcmp(c1->u.tribleop.relop,">=")==0 ) strcpy(newRelop,"<");
+				c1->u.tribleop.relop = newRelop;
+			}
+		}
+		else if(p->kind == GOTO_CODE){
+			//2.去除冗余的GOTO：将
+			//GOTO LABEL 1
+			//LABEL 1
+			//转化为
+			//LABEL 1
+			InterCode_t* c1 = p;
+			InterCode_t* c2 = p->nextCode;
+			if(c2==NULL){
+				p = p->nextCode;
+				continue;
+			}
+			if(c2->kind==LABEL_CODE && c1->u.singleop.op==c2->u.singleop.op){
+				p = p->nextCode;
+				deleteIRCode(codelist, c1);
+				continue;
+			}
+		}
+		p = p->nextCode;
+	}
+	return 0;
+}
 int deleteNullLebel(IRCodeList_t *codelist)
 {
+	//将没有GOTO语句或者IF_GOTO语句指向的LEBEL删去
+	LabelList_t* usedLabelListHead = NULL;
+	InterCode_t* p =codelist->Head;
+	//建链表
+	while(p!=NULL){
+		if(p->kind==GOTO_CODE){
+			LabelList_t* usedLabel = malloc(sizeof(LabelList_t));
+			usedLabel->labelNo = p->u.singleop.op->u.no;
+			usedLabel->nextLabel = usedLabelListHead;
+			usedLabelListHead = usedLabel;
+		}
+		else if(p->kind==IF_GOTO_CODE){
+			LabelList_t* usedLabel = malloc(sizeof(LabelList_t));
+			usedLabel->labelNo = p->u.tribleop.gotoLabel->u.no;
+			usedLabel->nextLabel = usedLabelListHead;
+			usedLabelListHead = usedLabel;
+		}
+		p = p->nextCode;
+	}
+	p =codelist->Head;
+	while(p!=NULL){
+		if(p->kind==LABEL_CODE){
+			int thisNo = p->u.singleop.op->u.no;
+			LabelList_t* labelP = usedLabelListHead;
+			while(labelP!=NULL){
+				if(labelP->labelNo == thisNo){
+					break;
+				}
+				labelP = labelP->nextLabel;
+			}
+			if(labelP==NULL){
+				//说明链表中没有该no
+				InterCode_t* tem = p;
+				p = p->nextCode;
+				deleteIRCode(codelist, tem);
+				continue;
+			}
+		}
+		p = p->nextCode;
+	}
+	//回收链表所占内存
+	while(usedLabelListHead!=NULL){
+		LabelList_t* tem = usedLabelListHead;
+		usedLabelListHead = usedLabelListHead->nextLabel;
+		free(tem);
+	}
+	//合并重复的Label
+	p =codelist->Head;
+	while(p!=NULL){
+		InterCode_t* c1 = p;
+		InterCode_t* c2 = p->nextCode;
+		if(c2==NULL){
+			p = p->nextCode;
+			continue;
+		}
+		if(c1->kind==LABEL_CODE && c2->kind==LABEL_CODE){
+			c1->u.singleop.op->u.no = c2->u.singleop.op->u.no;
+			p = c2;
+			deleteIRCode(codelist, c1);
+			continue;
+		}
+		p = p->nextCode;
+	}
 	return 0;
 }
 int figureOutConstCalc(IRCodeList_t *codelist)
 {
+	//将常数之间的运算计算出来 
+	//如果存储结果的是一个临时变量 则将该临时变量直接替换为该结果常数
+	InterCode_t* p =codelist->Head;
+	while(p!=NULL){
+		if(p->kind==ADD_CODE || p->kind==SUB_CODE || p->kind==MUL_CODE || p->kind==DIV_CODE ){
+			Operand_t* result = p->u.doubleop.result;
+			Operand_t* op1 = p->u.doubleop.op1;
+			Operand_t* op2 = p->u.doubleop.op2;
+			if(op1->kind==CONSTANT_OP && op2->kind==CONSTANT_OP){
+				int op1Int=atoi(op1->u.value);
+				int op2Int=atoi(op2->u.value);
+				int resultInt;
+				switch(p->kind){
+					case ADD_CODE:
+						resultInt = op1Int+op2Int;
+						break;
+					case SUB_CODE:
+						resultInt = op1Int-op2Int;
+						break;
+					case MUL_CODE:
+						resultInt = op1Int*op2Int;
+						break;
+					case DIV_CODE:
+						resultInt = op1Int/op2Int;
+							break;
+					default:assert(0);
+				}
+				char* resultStr = malloc(16*sizeof(char));
+				sprintf(resultStr, "%d", resultInt);
+				if(result->kind==TEMPVAR_OP){
+					result->kind = CONSTANT_OP;
+					result->u.value = resultStr;
+					InterCode_t* tem = p;
+					p = p->nextCode;
+					deleteIRCode(codelist,tem);
+					continue;
+				}
+				else{
+					p->kind = ASSIGN_CODE;
+					p->u.assign.left = result;
+					p->u.assign.right = op1;
+					op1->u.value = resultStr;
+				}
+			}
+		}
+		p = p->nextCode;
+	}
 	return 0;
 }
 int mergeAssignCode(IRCodeList_t *codelist)
 {
+	//观察赋值语句前后语句 在可以直接替换的情况下直接进行变量替换 从而将赋值语句合并
+	InterCode_t* p =codelist->Head;
+	while(p!=NULL){
+		InterCode_t* c1 = p;
+		InterCode_t* c2 = p->nextCode;
+		if(c2!=NULL && c1->kind==ASSIGN_CODE && c2->kind!=DEC_CODE ){
+			//当前语句下一句的右值等于当前语句的左值 并且该左值是临时的 则该左值是不需要的
+			if(c2->u.doubleop.op1==c1->u.assign.left && c1->u.assign.left->kind==TEMPVAR_OP){
+				c2->u.doubleop.op1 = c1->u.assign.right;
+				p = p->nextCode;
+				deleteIRCode(codelist,c1);
+				continue;
+			}
+			else if(c2->u.doubleop.op2==c1->u.assign.left){
+				c2->u.doubleop.op2 = c1->u.assign.right;
+				p = p->nextCode;
+				deleteIRCode(codelist,c1);
+				continue;
+			}
+		}
+		InterCode_t* c0 = p->prevCode;
+		if(c0!=NULL && c1->kind==ASSIGN_CODE && c0->kind!=DEC_CODE && c0->kind!=IF_GOTO_CODE ){
+			//当前语句上一句的左值等于当前语句的右值 并且该右值是临时的 则该右值是不需要的
+			if(c0->u.doubleop.result==c1->u.assign.right && c1->u.assign.left->kind != ADDRESS_OP && c1->u.assign.right->kind==TEMPVAR_OP){
+				c0->u.doubleop.result=c1->u.assign.left;
+				p = p->nextCode;
+				deleteIRCode(codelist,c1);
+				continue;
+			}
+		}
+		p = p->nextCode;
+	}
 	return 0;
 }
 int deleteNullGoto(IRCodeList_t *codelist)
 {
+	InterCode_t* p =codelist->Head;
+	while(p!=NULL){
+		if(p->kind == RETURN_CODE){
+			InterCode_t* c1 = p;
+			InterCode_t* c2 = p->nextCode;
+			if(c2==NULL){
+				p = p->nextCode;
+				continue;
+			}
+			if(c2->kind==GOTO_CODE)
+				deleteIRCode(codelist,c2);
+		}
+		p = p->nextCode;
+	}
 	return 0;
 }
 

@@ -10,6 +10,7 @@
 #include "semantic.h"
 #include<stdlib.h>
 
+extern int errorflag;
 static int SubTabCNT=0;
 
 const char *FuncDefTabHeader = "____FuncDefTabHeader____";
@@ -72,6 +73,7 @@ SbTab_t *Program(Sytree_t *sytree)
 			if(func->hasDef ==0)
 			{
 				printf( "Error type 2 at line %d: undefined function \"%s\".\n", func->lineo,func->name);
+				errorflag ++;
 			}
 		}
 	}
@@ -153,6 +155,7 @@ SbTab_t *ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 				if(FunParasCmp(list1,list2)!=0)
 				{
 					printf( "Error type 19 at line %d: Inconsistent declaration of function \"%s\".\n", child->lineno,fun->name);
+					errorflag ++ ;
 					return NULL;
 				}
 			}
@@ -164,12 +167,14 @@ SbTab_t *ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 				if(FunParasCmp(list1,list2)!=0)
 				{
 					printf( "Error type 19 at line %d: Inconsistent declaration of function \"%s\".\n", child->lineno,fun->name);
+					errorflag ++;
 					return NULL;
 				}
 			}
 			else if(sb->SbType==FUNCCALL)
 			{
 				printf( "Error type 2 at line %d: undefined function \"%s\".\n", child->lineno,fun->name);
+				errorflag ++;
 				return NULL;
 			}
 		}
@@ -196,11 +201,13 @@ SbTab_t *ExtDef(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 			else if(sb->SbType==FUNCDEF)
 			{
 				printf( "Error type 4 at line %d: Redefined function \"%s\".\n", child->lineno,fun->name);
+				errorflag ++;
 				return NULL;
 			}
 			else if(sb->SbType==FUNCCALL)
 			{
 				printf( "Error type 2 at line %d: undefined function \"%s\".\n", child->lineno,fun->name);
+				errorflag ++;
 				return NULL;
 			}
 			else if(sb->SbType == FUNCDEC) //前面函数声明 对应的定义
@@ -304,8 +311,12 @@ SbTab_t *StructSpecifier(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 			{
 				switch(tabtyp)
 				{
-					case BASIC_TAB: printf("Error type 16 at line %d: Duplicate name \"%s\".\n",child->child->ptr[0]->lineno,StName);break;
-					case STRUCTFILED: printf("Error type 15 at line %d: redefined field \"%s\".\n",child->child->ptr[0]->lineno,StName);break;
+					case BASIC_TAB: printf("Error type 16 at line %d: Duplicate name \"%s\".\n",child->child->ptr[0]->lineno,StName);
+					errorflag ++;
+					break;
+					case STRUCTFILED: printf("Error type 15 at line %d: redefined field \"%s\".\n",child->child->ptr[0]->lineno,StName);
+					errorflag ++;
+					break;
 					default:break;
 				}
 			}
@@ -332,6 +343,7 @@ SbTab_t *StructSpecifier(SbTab_t **tab, TabTyp_t tabtyp,node_t *node)
 		if(tmp==NULL)	//结构体未定义
 		{
 			printf("Error type 17 at line %d: Undefined structure \"%s\".\n",child->lineno,StName);	
+			errorflag ++;
 			return NULL;
 		}
 
@@ -407,9 +419,15 @@ SbTab_t *VarDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 		{
 			switch(tabtyp)
 			{
-				case STRUCTFILED: printf("Error type 15 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
-				case BASIC_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
-				case FUNDEF_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
+				case STRUCTFILED: printf("Error type 15 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+				errorflag ++;
+				break;
+				case BASIC_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+				errorflag ++;
+				break;
+				case FUNDEF_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+				errorflag ++;
+				break;
 				default:break;
 			}
 			
@@ -453,9 +471,15 @@ SbTab_t *VarDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 		{
 			switch(tabtyp)
 			{
-				case STRUCTFILED: printf("Error type 15 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
-				case BASIC_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
-				case FUNDEF_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);break;
+				case STRUCTFILED: printf("Error type 15 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+				errorflag ++;
+				break;
+				case BASIC_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+				errorflag ++;
+				break;
+				case FUNDEF_TAB:printf("Error type 3 at Line %d: Redefined variable \"%s\".\n",node->child->ptr[0]->lineno,node->child->ptr[0]->ID_type);
+				errorflag ++;
+				break;
 				default:break;
 			}
 			return NULL;
@@ -597,6 +621,8 @@ SbTab_t *Stmt(SbTab_t **tab, TabTyp_t tabtyp, node_t *node,SbTab_t *retT)
 		else if(retT==NULL || ret==NULL || typeCmp(retT,ret)!=0)
 		{
 			printf( "Error type 8 at line %d: Type mismatched for return.\n", childs[1]->lineno );
+			errorflag ++;
+			// return NULL;
 		}
 	}
 	else if(strcmp(childs[0]->name,"WHILE")==0)
@@ -676,6 +702,7 @@ SbTab_t *Dec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 			if(tabtyp==STRUCTFILED)
 			{
 				printf( "Error type 15 at line %d: variable can not be initialed in struct field \"%s\".\n", childs[0]->lineno, vardec->name);
+				errorflag ++;
 				return NULL;
 			}
 		
@@ -683,6 +710,7 @@ SbTab_t *Dec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type)
 			if(vardec != NULL && rval != NULL && typeCmp(vardec,rval)!=0)
 			{
 				printf( "Error type 5 at line %d: Type mismatched for assignment.\n", childs[0]->lineno);
+				errorflag ++;
 				return NULL;
 			}
 		}
@@ -711,6 +739,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				if(grandchildren==-1)
 				{
 					printf( "Error type 6 at line %d: The left-hand side of an assignment must be a variable.\n", childs[0]->lineno );
+					errorflag ++;
 					return NULL;
 				}
 				node_t **grandchilds=childs[0]->child->ptr;
@@ -728,6 +757,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				}
 				else{
 					printf( "Error type 6 at line %d: The left-hand side of an assignment must be a variable.\n", childs[0]->lineno );
+					errorflag ++;
 					return NULL;
 				}
 				//判断左右是否类型匹配
@@ -738,6 +768,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 					return lvar;
 				else{
 					printf( "Error type 5 at line %d: Type mismatched for assignment.\n", childs[0]->lineno );
+					errorflag ++;
 					return NULL;
 				}			
 			}
@@ -757,6 +788,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 					return lvar;
 				else{
 					printf( "Error type 7 at line %d: Type mismatched for operands.\n", childs[0]->lineno );
+					errorflag ++;
 					return NULL;
 				}
 			}
@@ -773,6 +805,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 					return lvar;
 				else{
 					printf( "Error type 7 at line %d: Type mismatched for operands.\n", childs[0]->lineno );
+					errorflag ++;
 					return NULL;
 				}
 			}
@@ -784,6 +817,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				if( lvar->SbType !=STRUCT_T )
 				{
 					printf( "Error type 13 at line %d: Illegal use of \".\".\n", childs[0]->lineno );
+					errorflag ++;
 					return NULL;
 				}
 				SbTab_t **strucField = (SbTab_t**)malloc(sizeof(SbTab_t *));
@@ -793,6 +827,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				if(tmp==NULL)
 				{
 					printf( "Error type 14 at line %d: Non-existent field \"%s\".\n", childs[0]->lineno,childs[2]->ID_type );
+					errorflag ++;
 					return NULL;
 				}
 				return tmp; //
@@ -808,6 +843,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 			if(arrSy->SbType != ARRAY)
 			{
 				printf( "Error type 10 at line %d: \"%s\" is not an array.\n", childs[0]->lineno, arrSy->name );
+				errorflag ++;
 				return NULL;
 			}
 			rval = Exp(tab,tabtyp,childs[2]);
@@ -816,6 +852,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 			if(rval->SbType != INT_T)
 			{
 				printf( "Error type 12 at line %d: \"%s\" is not an integer.\n", childs[2]->lineno , rval->name );
+				errorflag++;
 				return NULL;
 			}
 			return (SbTab_t*) arrSy->SubTab;
@@ -831,7 +868,8 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 			{
 				if(Sy == NULL)
 				{
-					printf( "Error type 1 at line %d: Undefined variable\"%s\".\n",childs[0]->lineno,childs[0]->ID_type);	
+					printf( "Error type 1 at line %d: Undefined variable\"%s\".\n",childs[0]->lineno,childs[0]->ID_type);
+					errorflag ++;	
 					return NULL;
 				}
 			}
@@ -849,6 +887,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				if( Sy == NULL)
 				{
 					printf( "Error type 2 at line %d: Undefined function\"%s\".\n",childs[0]->lineno,childs[0]->ID_type);	
+					errorflag ++;
 					return NULL;
 				}
 				if(Sy!=NULL)
@@ -856,6 +895,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 					if(Sy->SbType != FUNCDEF && Sy->SbType != FUNCDEC)
 					{
 						printf( "Error type 11 at line %d: \"%s\" is not a function.\n", childs[0]->lineno, childs[0]->ID_type);
+						errorflag ++;
 						return NULL;
 					}
 					FuncTab_t *func = (FuncTab_t*)Sy->SubTab;
@@ -867,6 +907,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 							printf( "Error type 9 at line %d: Function \"%s(", childs[2]->lineno, func->name );
 							printParaTypList( paralist );
 							printf( ")\" is not applicable for arguments \"()\".\n" );
+							errorflag ++;
 						}
 					}
 					else 
@@ -878,6 +919,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 							printf( ")\" is not applicable for arguments \"(");
 							printArgs(tab,tabtyp,childs[2]);
 							printf( ")\".\n" );
+							errorflag ++;
 						}
 					}
 					return func->retType;
@@ -886,6 +928,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 				if(Sy==NULL)
 				{
 					printf( "Error type 2 at line %d: Undefined function \"%s\".\n", childs[0]->lineno, childs[0]->ID_type );
+					errorflag ++;
 					return NULL;
 				}
 			}
@@ -907,6 +950,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 		if(rval->SbType != INT_T || rval->SbType != FLOAT_T)
 		{
 			printf("Error type 7 at line %d: Operands type mismatched\n",childs[1]->lineno);
+			errorflag ++;
 			return NULL;
 		}
 		return rval;
@@ -921,6 +965,7 @@ SbTab_t *Exp(SbTab_t **tab,TabTyp_t tabtyp,node_t *node)
 		if(rval->SbType != INT_T)
 		{
 			printf("Error type 7 at line %d: Operands type mismatched\n",childs[1]->lineno);
+			errorflag ++;
 			return NULL;
 		}
 		return rval;
