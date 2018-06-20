@@ -7,3 +7,4 @@ syntax.tab.c
 .vscode
 parser
 test
+*.out
