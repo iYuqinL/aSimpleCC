@@ -11,10 +11,10 @@
 #include "./3rdparty/uthash.h"
 #include <string.h>
 
-int ClearArrayList(arr_t *a)
+int ClearArrayList(SbTab_t *a)
 {
 	if(a!=NULL)
-		ClearArrayList(a->array);
+		ClearArrayList((SbTab_t*)a->SubTab);
 	free(a);
 	return 0;
 }
@@ -46,8 +46,11 @@ SbTab_t *AllocSymbol(const char *namev,SbType_t type)
 	ret->name=t;
 	ret->SbType=type;
 	ret->refcount = 0;
+	ret->arraySize =0;
+	// ret->atraynext =NULL;
 //	ret->depth=depth;
 //	if(ret->SbType!=INT_T)
+	ret->varNo = -1;
 	ret->SubTab=NULL;
 	ret->parent=NULL;
 	return ret;
@@ -96,7 +99,8 @@ int DeleteSymbol(SbTab_t **tab,SbTab_t *symbol)
 	}
 	else if(symbol->SbType==ARRAY)
 	{
-		ClearArrayList((arr_t*)(symbol->SubTab));
+		// ClearSbTab((SbTab_t**)(&((symbol->SubTab))));
+		ClearArrayList((SbTab_t*)(symbol->SubTab));
 	}
 //	printf("delete symbol: %s \n",symbol->name);
 	free(symbol->name);
@@ -122,20 +126,46 @@ int ClearSbTab(SbTab_t **tab)
 	return 0;
 }
 
-int PrintSymbolTab(SbTab_t **tab)
+int PrintSymbolTab(SbTab_t **tab,int depth)
 {
 	SbTab_t *s;
 	for(s=*tab;s!=NULL;s=s->hh.next)
 	{
-		printf("Symbol name is %s, ",s->name);
+		if(s->SbType == TABHEADER)
+			continue;
+		for(int i=0;i<depth;++i)
+			printf(" ");
+		printf("Symbol name is: %s; ",s->name);
 		switch(s->SbType)
 		{
-			case INT_T: printf("It is a int symbol\n");break;
-			case FLOAT_T:  printf("It is a float symbol\n");break;
-			case ARRAY: printf("It is a array\n");break;
-			case FUNCDEF: printf("It is a Function\n");break;
-			case STRUCT_T: printf("It is a Struct\n");break;
-			default:break;
+			case INT_T: 
+			printf("It is a int symbol\n");break;
+			case FLOAT_T: 
+			 printf("It is a float symbol\n");break;
+			case ARRAY: 
+			printf("It is a array\n");break;
+			case FUNCDEF: 
+			printf("It is a Function\n");
+			FuncTab_t *func = (s->SubTab);
+			SbTab_t **paralist  = (SbTab_t**)(&(func->paraList));
+			printf("paralist:\n");
+			PrintSymbolTab(paralist,depth+4);
+			SbTab_t **fundef = (SbTab_t**)(&(func->FuncDef));
+			printf("fundef:\n");
+			PrintSymbolTab(fundef,depth+4);
+			break;
+			case STRUCT_T: 
+			printf("It is a Struct\n");
+			SbTab_t **strucFiled = (SbTab_t**)(&(s->SubTab));
+			printf("struct filed:\n");
+			PrintSymbolTab(strucFiled,depth+4);
+			break;
+			case SUBTAB:
+			printf("it is a subtab:\n");
+			SbTab_t **subtab = (SbTab_t**)(&(s->SubTab));
+			PrintSymbolTab(subtab,depth +4);
+			break;
+			default:printf("\n"); break;
 		}
 	}
 	return 0;

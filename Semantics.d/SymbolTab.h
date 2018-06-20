@@ -30,14 +30,6 @@ typedef enum SymbolType_t
 }SbType_t;
 
 
-typedef struct array_t
-{
-	int size;
-	SbType_t type; //only be BASIC or ARRAY
-	struct array_t *array;
-}arr_t;
-
-int ClearArrayList(arr_t *a);
 
 typedef struct SymbolTab_t
 {
@@ -50,8 +42,22 @@ typedef struct SymbolTab_t
 	void *SubTab;
 	//变量作用域, 0 表示变量为全局变量
 	//int depth;
+	//用于变量的编号
+	int varNo;
+	int arraySize;
+	// SbTab_t *atraynext;
 	UT_hash_handle hh;
 }SbTab_t;
+
+
+// typedef struct array_t
+// {
+// 	int size;
+// 	SbTab_t *type; //only be BASIC or ARRAY
+// 	struct array_t *array;
+// }arr_t;
+
+// int ClearArrayList(arr_t *a);
 /*
 typedef struct StructTable_t
 {
@@ -86,7 +92,7 @@ int InsertSymbol(SbTab_t **tab,SbTab_t *symbol);
 SbTab_t *FindSymbol(SbTab_t **tab,const char *name, SbTab_t *result);
 int DeleteSymbol(SbTab_t **tab,SbTab_t *symbol);
 int ClearSbTab(SbTab_t **tab);
-int PrintSbTab(SbTab_t **tab);
+int PrintSymbolTab(SbTab_t **tab,int depth);
 
 
 //Function table operation
