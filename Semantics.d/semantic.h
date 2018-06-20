@@ -41,7 +41,7 @@ SbTab_t *Specifier(SbTab_t **tab,TabTyp_t tabtyp,node_t *node);
 SbTab_t *StructSpecifier(SbTab_t **tab,TabTyp_t tabtyp, node_t *node);
 SbTab_t *VarDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *type);
 
-FuncTab_t *FunDec(node_t *node, SbTab_t *retT);
+FuncTab_t *FunDec(SbTab_t **tab,TabTyp_t tabtyp,node_t *node,SbTab_t *retT);
 SbTab_t *VarList(SbTab_t **tab, TabTyp_t tabtyp, node_t *node);
 SbTab_t *ParamDec(SbTab_t **tab, TabTyp_t tabtyp,node_t *node);
 
@@ -59,9 +59,10 @@ int Args(SbTab_t **tab,TabTyp_t tabtyp,node_t *node, SbTab_t *paralist);
 
 //辅助函数
 int typeCmp(SbTab_t *a, SbTab_t *b);
-int arraytypeCmp(arr_t *a, arr_t*b);
+int arraytypeCmp(SbTab_t *a, SbTab_t*b);
 int StTypeCmp(SbTab_t **a,SbTab_t **b);
 int FunParasCmp(SbTab_t **list1,SbTab_t **list2);
+int setFunParent(SbTab_t *parent,FuncTab_t **fun);
 
 SbTab_t *LookUpSymbol(SbTab_t **tab,char *name, SbTab_t *result);
 

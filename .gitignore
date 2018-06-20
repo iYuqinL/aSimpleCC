@@ -6,3 +6,4 @@ syntax.tab.h
 syntax.tab.c
 .vscode
 parser
+test
