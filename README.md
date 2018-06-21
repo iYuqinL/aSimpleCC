@@ -15,3 +15,4 @@ The files for Lab 2 were putted in the [Semantics.d](https://github.com/Yusnows/
 
 # Lab 3. Intermediate code generate
 
+he files for Lab 3 were putted in the [IntermediateCode.d](https://github.com/Yusnows/aSimpleCC/tree/master/IntermediateCode.d) directory. You should go to the [IntermediateCode.d](https://github.com/Yusnows/aSimpleCC/tree/master/IntermediateCode.d) directory for the lab 3. and there also have a readme.md file. the detail about lab 3 will be given by that file.
