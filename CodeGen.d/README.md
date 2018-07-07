@@ -64,7 +64,7 @@ After the command. the intermediate code result will print on the screen.
 maybe you want test the program by other example that were not be supplied by the guided book. then you can just use the command as follow:
 
 ```
-./parser testfilename IRCodeOutputfilename
+./parser testfilename ObjCodeOutputfilename
 ```
 
 and the intermediate code  result will be putted on the screen.
