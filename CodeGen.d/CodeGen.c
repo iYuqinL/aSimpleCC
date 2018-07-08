@@ -48,7 +48,8 @@ void stVar(VarDes* var, FILE* fp){
 	fputs(stCode, fp);
 }
 
-void ldVar(VarDes* var, FILE* fp){
+void ldVar(VarDes* var, FILE* fp)
+{
 	//需要将内存中的变量load到寄存器中
 	char ldCode[64];
 	if(var->op->kind == VARIABLE_OP ||var->op->kind==VARDEC_OP || var->op->kind == TEMPVAR_OP){
